@@ -153,7 +153,7 @@ ENV_FILE = find_dotenv()
 if ENV_FILE:
     load_dotenv(ENV_FILE)
 
-AAI_KEY = os.getenv("aai_key", "")
-HF_AUTH_TOKEN = os.getenv("hf_auth_token", "")
-OPENAI_API_KEY = os.getenv("openai_api_key", "")
+AAI_KEY = os.getenv("AAI_KEY", " ")
+HF_AUTH_TOKEN = os.getenv("HF_AUTH_TOKEN", " ")
+OPENAI_API_KEY = os.getenv("OPENAI_API_KEY", " ")
 
