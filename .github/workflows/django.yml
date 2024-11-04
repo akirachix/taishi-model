@@ -1,0 +1,27 @@
+name: Django CI
+on:
+  push:
+    branches: [ "main" ]
+jobs:
+  release:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v2
+      - name: Set up Python environment
+        uses: actions/setup-python@v2
+        with:
+          python-version: 3.11
+      - name: Install dependencies
+        run: |
+          pip install -r requirements.txt
+      - name: Set up Git remote for Heroku
+        run: |
+          git remote -v
+          git remote add heroku https://git.heroku.com/themis-ai.git || echo "Heroku remote already exists"
+      - name: Deploy to Heroku
+        uses: akhileshns/heroku-deploy@v3.13.15
+        with:
+          heroku_api_key: ${{ secrets.HEROKU_API_KEY }}
+          heroku_app_name: "themis-ai"
+          heroku_email: ${{ secrets.HEROKU_EMAIL }}
