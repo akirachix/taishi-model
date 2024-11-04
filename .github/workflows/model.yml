@@ -1,0 +1,49 @@
+name: Django CI/CD
+'on':
+  push:
+    branches:
+      - main
+      
+  pull_request:
+    branches:
+      - main
+     
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v3
+      - name: Set up Python
+        uses: actions/setup-python@v3
+        with:
+          python-version: '3.10'
+      - name: Install Dependencies
+        run: |
+          pip install -r requirements.txt
+      - name: Install Black
+        run: |
+          pip install black
+      - name: Check code formatting with Black
+        id: action_black
+        run: |
+          black .
+      - name: List files
+        run: ls -R
+      - name: Run migrations
+        env:
+          HF_AUTH_TOKEN: '${{ secrets.HF_AUTH_TOKEN }}'
+          AAI_KEY: '${{ secrets.AAI_KEY }}'
+          OPENAI_API_KEY: '${{secrets. OPENAI_API_KEY}}'
+         
+          
+        run: |
+          python manage.py migrate
+      - name: Run tests
+        env:
+          
+          HF_AUTH_TOKEN: '${{ secrets.HF_AUTH_TOKEN }}'
+          AAI_KEY: '${{ secrets.AAI_KEY }}'
+          OPENAI_API_KEY: '${{secrets. OPENAI_API_KEY}}'
+        run: |
+          python manage.py test
