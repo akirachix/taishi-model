@@ -47,8 +47,12 @@ jobs:
           else
             echo "Hugging Face Token is set."
           fi
+
+      - name: Add FFmpeg Buildpack
+        run: |
+          heroku buildpacks:add https://github.com/jonathanong/heroku-buildpack-ffmpeg --app themis-ai
         env:
-          HF_AUTH_TOKEN: ${{ secrets.HF_AUTH_TOKEN }}
+          HEROKU_API_KEY: ${{ secrets.HEROKU_API_KEY }}
 
       - name: Make empty commit to trigger unique deployment
         run: |
@@ -59,14 +63,6 @@ jobs:
       - name: Debug Hugging Face Token
         run: |
           echo "Hugging Face Token: ***"  # Mask the token for security
-        env:
-          HF_AUTH_TOKEN: ${{ secrets.HF_AUTH_TOKEN }}
-
-      - name: Check Heroku Buildpacks
-        run: |
-          heroku buildpacks --app themis-ai
-        env:
-          HEROKU_API_KEY: ${{ secrets.HEROKU_API_KEY }}
 
       - name: Deploy to Heroku
         uses: akhileshns/heroku-deploy@v3.13.15
