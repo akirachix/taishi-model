@@ -45,7 +45,9 @@ def transcribe_audio_with_retry(audio_file_path, retries=5, delay=2):
 from pyannote.audio import Pipeline
 
 # Initialize the diarization pipeline (use your Hugging Face access token if needed)
-pipeline = Pipeline.from_pretrained("pyannote/speaker-diarization-3.1",  use_auth_token=settings.HF_AUTH_TOKEN)
+HF_AUTH_TOKEN = os.getenv('HF_AUTH_TOKEN', settings.HF_AUTH_TOKEN)
+pipeline = Pipeline.from_pretrained("pyannote/speaker-diarization-3.1", use_auth_token=HF_AUTH_TOKEN)
+
 
 def diarize_audio_with_retry(audio_file_path, retries=5, delay=2):
     """Performs diarization and transcription on the given audio file with retry logic using pyannote.audio and OpenAI."""
