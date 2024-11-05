@@ -29,10 +29,6 @@ jobs:
         run: |
           pip install -r requirements.txt
 
-      - name: Install gunicorn
-        run: |
-          pip install gunicorn
-
       - name: Set up Git remote for Heroku
         run: |
           git remote remove heroku || true
@@ -54,11 +50,17 @@ jobs:
             echo "Hugging Face Token is set."
           fi
 
-      - name: Make empty commit to trigger unique deployment
+      - name: Fetch latest changes from Heroku
         run: |
-          git config user.name "github-actions[bot]"
-          git config user.email "github-actions[bot]@users.noreply.github.com"
-          git commit --allow-empty -m "Trigger redeployment on Heroku"
+          git fetch heroku main
+          git merge heroku/main
+
+      # Optional: Remove the empty commit step if not necessary
+      # - name: Make empty commit to trigger unique deployment
+      #   run: |
+      #     git config user.name "github-actions[bot]"
+      #     git config user.email "github-actions[bot]@users.noreply.github.com"
+      #     git commit --allow-empty -m "Trigger redeployment on Heroku"
 
       - name: Deploy to Heroku
         uses: akhileshns/heroku-deploy@v3.13.15
@@ -66,9 +68,16 @@ jobs:
           heroku_api_key: ${{ secrets.HEROKU_API_KEY }}
           heroku_app_name: "themis-ai"
           heroku_email: ${{ secrets.HEROKU_EMAIL }}
+          dontuseforce: 1  # Prevent force-pushing to avoid conflicts
         env:
           HF_AUTH_TOKEN: ${{ secrets.HF_AUTH_TOKEN }}
           AAI_KEY: ${{ secrets.AAI_KEY }}
           OPENAI_API_KEY: ${{ secrets.OPENAI_API_KEY }}
           DATABASE_URL: ${{ secrets.DATABASE_URL }}
 
+      - name: Capture Heroku Logs on Failure
+        if: failure()
+        run: |
+          heroku logs --app themis-ai --source app --dyno web.1
+        env:
+          HEROKU_API_KEY: ${{ secrets.HEROKU_API_KEY }}
