@@ -33,8 +33,10 @@ jobs:
         env:
           HEROKU_API_KEY: ${{ secrets.HEROKU_API_KEY }}
         run: |
-          git remote remove heroku || true
-          git remote add heroku https://heroku:${HEROKU_API_KEY}@git.heroku.com/themis-ai.git
+          if ! git remote | grep -q heroku; then
+            git remote add heroku https://heroku:${HEROKU_API_KEY}@git.heroku.com/themis-ai.git
+          fi
+
 
       - name: Fetch and merge Heroku main branch
         run: |
