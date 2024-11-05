@@ -22,7 +22,7 @@ jobs:
           key: ${{ runner.os }}-pip-${{ hashFiles('**/requirements.txt') }}
           restore-keys: |
             ${{ runner.os }}-pip-
-          
+
       - name: Install dependencies
         run: |
           pip install -r requirements.txt
@@ -38,13 +38,21 @@ jobs:
           echo "Python Version: $(python --version)"
           echo "Pip Version: $(pip --version)"
           echo "DATABASE_URL: ${{ secrets.DATABASE_URL }}"
-      
+
+      - name: Check Hugging Face Token Presence
+        run: |
+          if [ -z "${{ secrets.HF_AUTH_TOKEN }}" ]; then
+            echo "Hugging Face Token is not set!"
+          else
+            echo "Hugging Face Token is set."
+          fi
+
       - name: Make empty commit to trigger unique deployment
         run: |
           git config user.name "github-actions[bot]"
           git config user.email "github-actions[bot]@users.noreply.github.com"
           git commit --allow-empty -m "Trigger redeployment on Heroku"
-      
+
       - name: Debug Hugging Face Token
         run: |
           echo "Hugging Face Token: ***"  # Mask the token for security
