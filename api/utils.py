@@ -1,4 +1,5 @@
 import time
+import os
 from django.conf import settings
 import assemblyai as aai
 
