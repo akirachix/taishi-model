@@ -13,7 +13,7 @@ jobs:
       - name: Set up Python environment
         uses: actions/setup-python@v2
         with:
-          python-version: 3.11
+          python-version: 3.10
 
       - name: Cache dependencies
         uses: actions/cache@v2
@@ -22,7 +22,7 @@ jobs:
           key: ${{ runner.os }}-pip-${{ hashFiles('**/requirements.txt') }}
           restore-keys: |
             ${{ runner.os }}-pip-
-
+            
       - name: Install dependencies
         run: |
           pip install -r requirements.txt
@@ -37,6 +37,7 @@ jobs:
           git remote -v
           echo "Python Version: $(python --version)"
           echo "Pip Version: $(pip --version)"
+          echo "DATABASE_URL: ${{ secrets.DATABASE_URL }}"  
 
       - name: Make empty commit to trigger unique deployment
         run: |
@@ -54,3 +55,10 @@ jobs:
           HF_AUTH_TOKEN: ${{ secrets.HF_AUTH_TOKEN }}
           AAI_KEY: ${{ secrets.AAI_KEY }}
           OPENAI_API_KEY: ${{ secrets.OPENAI_API_KEY }}
+          DATABASE_URL: ${{ secrets.DATABASE_URL }}  
+
+      - name: Run database migrations
+        run: |
+          heroku run python manage.py migrate --app themis-ai
+        env:
+          HEROKU_API_KEY: ${{ secrets.HEROKU_API_KEY }}
