@@ -29,38 +29,17 @@ jobs:
         run: |
           pip install -r requirements.txt
 
-      - name: Set up Git remote for Heroku
+      - name: Set up Git remote for Heroku with API key
+        env:
+          HEROKU_API_KEY: ${{ secrets.HEROKU_API_KEY }}
         run: |
           git remote remove heroku || true
-          git remote add heroku https://git.heroku.com/themis-ai.git
+          git remote add heroku https://heroku:${HEROKU_API_KEY}@git.heroku.com/themis-ai.git
 
-      - name: Debug Git Remote and Environment
-        run: |
-          git remote -v
-          echo "Python Version: $(python --version)"
-          echo "Pip Version: $(pip --version)"
-          echo "DATABASE_URL: ${{ secrets.DATABASE_URL }}"
-
-      - name: Check Hugging Face Token Presence
-        run: |
-          if [ -z "${{ secrets.HF_AUTH_TOKEN }}" ]; then
-            echo "Hugging Face Token is not set!"
-            exit 1
-          else
-            echo "Hugging Face Token is set."
-          fi
-
-      - name: Fetch latest changes from Heroku
+      - name: Fetch and merge Heroku main branch
         run: |
           git fetch heroku main
           git merge heroku/main
-
-      # Optional: Remove the empty commit step if not necessary
-      # - name: Make empty commit to trigger unique deployment
-      #   run: |
-      #     git config user.name "github-actions[bot]"
-      #     git config user.email "github-actions[bot]@users.noreply.github.com"
-      #     git commit --allow-empty -m "Trigger redeployment on Heroku"
 
       - name: Deploy to Heroku
         uses: akhileshns/heroku-deploy@v3.13.15
