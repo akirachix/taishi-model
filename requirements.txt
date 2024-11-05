@@ -22,3 +22,4 @@ sqlparse==0.5.1
 typing_extensions==4.12.2
 openai==0.28
 pyannote.audio==3.3.2
+fpdf==1.7.2
