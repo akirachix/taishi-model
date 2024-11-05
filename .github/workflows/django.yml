@@ -44,6 +44,10 @@ jobs:
           git config user.name "github-actions[bot]"
           git config user.email "github-actions[bot]@users.noreply.github.com"
           git commit --allow-empty -m "Trigger redeployment on Heroku"
+      - name: Debug Hugging Face Token
+        run: |
+          echo "Hugging Face Token: ${{ secrets.HF_AUTH_TOKEN }}"
+
 
       - name: Deploy to Heroku
         uses: akhileshns/heroku-deploy@v3.13.15
