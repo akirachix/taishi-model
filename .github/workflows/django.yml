@@ -25,8 +25,11 @@ jobs:
           heroku_api_key: ${{ secrets.HEROKU_API_KEY }}
           heroku_app_name: "themis-ai"
           heroku_email: ${{ secrets.HEROKU_EMAIL }}
-
-
-
-
+        env:
+          HF_AUTH_TOKEN: ${{ secrets.HF_AUTH_TOKEN }}
+          AAI_KEY: ${{ secrets.AAI_KEY }}
+          OPENAI_API_KEY: ${{ secrets.OPENAI_API_KEY }}
+ 
+ 
+ 
 
