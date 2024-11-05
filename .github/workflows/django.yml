@@ -2,23 +2,48 @@ name: Django CI
 on:
   push:
     branches: [ "main" ]
+
 jobs:
   release:
     runs-on: ubuntu-latest
     steps:
       - name: Checkout code
         uses: actions/checkout@v2
+
       - name: Set up Python environment
         uses: actions/setup-python@v2
         with:
           python-version: 3.11
+
+      - name: Cache dependencies
+        uses: actions/cache@v2
+        with:
+          path: ~/.cache/pip
+          key: ${{ runner.os }}-pip-${{ hashFiles('**/requirements.txt') }}
+          restore-keys: |
+            ${{ runner.os }}-pip-
+
       - name: Install dependencies
         run: |
           pip install -r requirements.txt
+
       - name: Set up Git remote for Heroku
         run: |
+          git remote remove heroku || true
+          git remote add heroku https://git.heroku.com/themis-ai.git
+
+      - name: Debug Git Remote and Environment
+        run: |
           git remote -v
-          git remote add heroku https://git.heroku.com/themis-ai.git || echo "Heroku remote already exists"
+          echo "Python Version: $(python --version)"
+          echo "Pip Version: $(pip --version)"
+
+      - name: Make empty commit to trigger unique deployment
+        run: |
+          git config user.name "github-actions[bot]"
+          git config user.email "github-actions[bot]@users.noreply.github.com"
+          git commit --allow-empty -m "Trigger redeployment on Heroku"
+
       - name: Deploy to Heroku
         uses: akhileshns/heroku-deploy@v3.13.15
         with:
@@ -29,7 +54,3 @@ jobs:
           HF_AUTH_TOKEN: ${{ secrets.HF_AUTH_TOKEN }}
           AAI_KEY: ${{ secrets.AAI_KEY }}
           OPENAI_API_KEY: ${{ secrets.OPENAI_API_KEY }}
- 
- 
- 
-
