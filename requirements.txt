@@ -23,3 +23,5 @@ typing_extensions==4.12.2
 openai==0.28
 pyannote.audio==3.3.2
 fpdf==1.7.2
+selenium==4.26.1
+pydub==0.25.1
