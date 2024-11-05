@@ -43,9 +43,12 @@ jobs:
         run: |
           if [ -z "${{ secrets.HF_AUTH_TOKEN }}" ]; then
             echo "Hugging Face Token is not set!"
+            exit 1
           else
             echo "Hugging Face Token is set."
           fi
+        env:
+          HF_AUTH_TOKEN: ${{ secrets.HF_AUTH_TOKEN }}
 
       - name: Make empty commit to trigger unique deployment
         run: |
@@ -58,6 +61,12 @@ jobs:
           echo "Hugging Face Token: ***"  # Mask the token for security
         env:
           HF_AUTH_TOKEN: ${{ secrets.HF_AUTH_TOKEN }}
+
+      - name: Check Heroku Buildpacks
+        run: |
+          heroku buildpacks --app themis-ai
+        env:
+          HEROKU_API_KEY: ${{ secrets.HEROKU_API_KEY }}
 
       - name: Deploy to Heroku
         uses: akhileshns/heroku-deploy@v3.13.15
