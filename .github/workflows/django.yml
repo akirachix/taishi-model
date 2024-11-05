@@ -72,8 +72,3 @@ jobs:
           OPENAI_API_KEY: ${{ secrets.OPENAI_API_KEY }}
           DATABASE_URL: ${{ secrets.DATABASE_URL }}
 
-      - name: Run database migrations
-        run: |
-          heroku run python manage.py migrate --app themis-ai
-        env:
-          HEROKU_API_KEY: ${{ secrets.HEROKU_API_KEY }}
