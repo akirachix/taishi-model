@@ -50,11 +50,11 @@ jobs:
         uses: akhileshns/heroku-deploy@v3.13.15
         with:
           heroku_api_key: ${{ secrets.HEROKU_API_KEY }}
-          heroku_app_name: "themis-ai"
+          heroku_app_name: "law-themisai"
           heroku_email: ${{ secrets.HEROKU_EMAIL }}
 
       - name: Capture Heroku Logs on Failure
         if: failure()
         env:
           HEROKU_API_KEY: ${{ secrets.HEROKU_API_KEY }}
-        run: heroku logs --app themis-ai --source app --dyno web.1
+        run: heroku logs --app law-themisai --source app --dyno web.1
