@@ -32,6 +32,8 @@ jobs:
       - name: Deploy to Heroku (Force Push)
         run: |
           git remote add heroku https://git.heroku.com/themis-ai.git
+          git config --global credential.helper store
+          echo "https://$HEROKU_API_KEY:@git.heroku.com" > ~/.git-credentials
           git push --force heroku HEAD:main
         env:
           HEROKU_API_KEY: ${{ secrets.HEROKU_API_KEY }}
