@@ -24,7 +24,7 @@ jobs:
           key: ${{ runner.os }}-pip-${{ hashFiles('**/requirements.txt') }}
           restore-keys: |
             ${{ runner.os }}-pip-
-      
+
       - name: Install dependencies
         run: |
           pip install -r requirements.txt
@@ -37,6 +37,16 @@ jobs:
           HEROKU_API_KEY: ${{ secrets.HEROKU_API_KEY }}
         run: |
           echo "$HEROKU_API_KEY" | heroku auth:token
+
+      - name: Verify Heroku Authentication
+        run: heroku whoami
+        env:
+          HEROKU_API_KEY: ${{ secrets.HEROKU_API_KEY }}
+
+      - name: Setup Heroku Credentials
+        run: |
+          git config --global credential.helper store
+          echo "https://heroku:$HEROKU_API_KEY@git.heroku.com" > ~/.git-credentials
 
       - name: Deploy to Heroku
         run: |
