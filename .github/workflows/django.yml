@@ -32,6 +32,11 @@ jobs:
       - name: Install Heroku CLI
         run: curl https://cli-assets.heroku.com/install.sh | sh
 
+      - name: Configure Git
+        run: |
+          git config --global user.email "ndichujoyce8@gmail.com"
+          git config --global user.name "Ndichu-shee"
+
       - name: Heroku Login
         env:
           HEROKU_API_KEY: ${{ secrets.HEROKU_API_KEY }}
@@ -49,7 +54,7 @@ jobs:
           heroku buildpacks:set heroku/python -a themis-ai
           git add .
           git commit -m "Deployment commit"
-          heroku buildpacks:deploy -a themis-ai
+          git push heroku main
 
       - name: Capture Heroku Logs on Failure
         if: failure()
