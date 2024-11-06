@@ -40,6 +40,9 @@ jobs:
       - name: Set Heroku remote
         run: heroku git:remote -a themis-ai
 
+      - name: Verify Git Remote
+        run: git remote -v
+
       - name: Deploy to Heroku
         run: git push heroku HEAD:main
         env:
