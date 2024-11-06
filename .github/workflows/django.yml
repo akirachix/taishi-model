@@ -41,19 +41,18 @@ jobs:
       - name: Deploy with Heroku Buildpacks
         env:
           HEROKU_API_KEY: ${{ secrets.HEROKU_API_KEY }}
+          HF_AUTH_TOKEN: ${{ secrets.HF_AUTH_TOKEN }}
+          AAI_KEY: ${{ secrets.AAI_KEY }}
+          OPENAI_API_KEY: ${{ secrets.OPENAI_API_KEY }}
+          DATABASE_URL: ${{ secrets.DATABASE_URL }}
         run: |
           heroku buildpacks:set heroku/python -a themis-ai
           git add .
           git commit -m "Deployment commit"
           heroku buildpacks:deploy -a themis-ai
-        env:
-          HF_AUTH_TOKEN: ${{ secrets.HF_AUTH_TOKEN }}
-          AAI_KEY: ${{ secrets.AAI_KEY }}
-          OPENAI_API_KEY: ${{ secrets.OPENAI_API_KEY }}
-          DATABASE_URL: ${{ secrets.DATABASE_URL }}
 
       - name: Capture Heroku Logs on Failure
         if: failure()
-        run: heroku logs --app themis-ai --source app --dyno web.1
         env:
           HEROKU_API_KEY: ${{ secrets.HEROKU_API_KEY }}
+        run: heroku logs --app themis-ai --source app --dyno web.1
