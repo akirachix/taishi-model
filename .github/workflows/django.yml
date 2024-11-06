@@ -40,14 +40,15 @@ jobs:
       - name: Heroku Login
         env:
           HEROKU_API_KEY: ${{ secrets.HEROKU_API_KEY }}
-        run: |
-          echo "$HEROKU_API_KEY" | heroku auth:token
+        run: echo "$HEROKU_API_KEY" | heroku auth:token
 
       - name: Deploy to Heroku
         env:
           HEROKU_API_KEY: ${{ secrets.HEROKU_API_KEY }}
         run: |
           heroku git:remote -a themis-ai
+          git add .
+          git commit -m "Automated deployment commit" || true  # Ignore if no changes
           git push heroku main
 
       - name: Capture Heroku Logs on Failure
