@@ -32,26 +32,20 @@ jobs:
       - name: Install Heroku CLI
         run: curl https://cli-assets.heroku.com/install.sh | sh
 
-      - name: Set Heroku remote with API key
+      - name: Heroku Login
         env:
           HEROKU_API_KEY: ${{ secrets.HEROKU_API_KEY }}
         run: |
-          # Setup Heroku git remote
-          heroku git:remote -a themis-ai
+          echo "$HEROKU_API_KEY" | heroku auth:token
 
-      - name: Add Heroku credentials to Git
+      - name: Deploy with Heroku Buildpacks
         env:
           HEROKU_API_KEY: ${{ secrets.HEROKU_API_KEY }}
         run: |
-          # Set Heroku credentials directly in Git
-          git config --global credential.helper store
-          echo "https://heroku:$HEROKU_API_KEY@git.heroku.com" > ~/.git-credentials
-
-      - name: Verify Git Remote
-        run: git remote -v
-
-      - name: Deploy to Heroku
-        run: git push heroku HEAD:main
+          heroku buildpacks:set heroku/python -a themis-ai
+          git add .
+          git commit -m "Deployment commit"
+          heroku buildpacks:deploy -a themis-ai
         env:
           HF_AUTH_TOKEN: ${{ secrets.HF_AUTH_TOKEN }}
           AAI_KEY: ${{ secrets.AAI_KEY }}
