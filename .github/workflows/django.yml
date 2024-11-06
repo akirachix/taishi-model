@@ -33,9 +33,10 @@ jobs:
           pip install --upgrade pip
           pip install -r requirements.txt
       - name: Add ffmpeg buildpack
-        run: heroku buildpacks:add --index 1 https://github.com/jonathanong/heroku-buildpack-ffmpeg
+        run: heroku buildpacks:add --index 1 https://github.com/jonathanong/heroku-buildpack-ffmpeg --app law-themisai
         env:
           HEROKU_API_KEY: ${{ secrets.HEROKU_API_KEY }}
+      
 
 
       - name: Install Heroku CLI
