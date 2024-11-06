@@ -29,10 +29,6 @@ jobs:
         run: |
           pip install -r requirements.txt
 
-      - name: Fetch and merge Heroku main branch
-        run: |
-          git fetch heroku main
-          git merge heroku/main
 
       - name: Deploy to Heroku
         uses: akhileshns/heroku-deploy@v3.13.15
