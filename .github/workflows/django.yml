@@ -35,22 +35,13 @@ jobs:
       - name: Login to Heroku
         env:
           HEROKU_API_KEY: ${{ secrets.HEROKU_API_KEY }}
-        run: |
-          echo "$HEROKU_API_KEY" | heroku auth:token
+        run: echo "$HEROKU_API_KEY" | heroku auth:token
 
-      - name: Verify Heroku Authentication
-        run: heroku whoami
-        env:
-          HEROKU_API_KEY: ${{ secrets.HEROKU_API_KEY }}
-
-      - name: Setup Heroku Credentials
-        run: |
-          git config --global credential.helper store
-          echo "https://heroku:$HEROKU_API_KEY@git.heroku.com" > ~/.git-credentials
+      - name: Set Heroku remote
+        run: heroku git:remote -a themis-ai
 
       - name: Deploy to Heroku
-        run: |
-          git push --force https://heroku:$HEROKU_API_KEY@git.heroku.com/themis-ai.git HEAD:main
+        run: git push heroku HEAD:main
         env:
           HF_AUTH_TOKEN: ${{ secrets.HF_AUTH_TOKEN }}
           AAI_KEY: ${{ secrets.AAI_KEY }}
@@ -59,7 +50,6 @@ jobs:
 
       - name: Capture Heroku Logs on Failure
         if: failure()
-        run: |
-          heroku logs --app themis-ai --source app --dyno web.1
+        run: heroku logs --app themis-ai --source app --dyno web.1
         env:
           HEROKU_API_KEY: ${{ secrets.HEROKU_API_KEY }}
