@@ -29,14 +29,19 @@ jobs:
         run: |
           pip install -r requirements.txt
 
-      - name: Deploy to Heroku (Force Push)
-        run: |
-          git remote add heroku https://git.heroku.com/themis-ai.git
-          git config --global credential.helper store
-          echo "https://$HEROKU_API_KEY:@git.heroku.com" > ~/.git-credentials
-          git push --force heroku HEAD:main
+      - name: Install Heroku CLI
+        run: curl https://cli-assets.heroku.com/install.sh | sh
+
+      - name: Login to Heroku
         env:
           HEROKU_API_KEY: ${{ secrets.HEROKU_API_KEY }}
+        run: |
+          echo "$HEROKU_API_KEY" | heroku auth:token
+
+      - name: Deploy to Heroku
+        run: |
+          git push --force https://heroku:$HEROKU_API_KEY@git.heroku.com/themis-ai.git HEAD:main
+        env:
           HF_AUTH_TOKEN: ${{ secrets.HF_AUTH_TOKEN }}
           AAI_KEY: ${{ secrets.AAI_KEY }}
           OPENAI_API_KEY: ${{ secrets.OPENAI_API_KEY }}
