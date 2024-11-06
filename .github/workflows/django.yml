@@ -43,6 +43,12 @@ jobs:
         run: |
           echo "$HEROKU_API_KEY" | heroku auth:token
 
+      - name: Deploy to Heroku
+        env:
+          HEROKU_API_KEY: ${{ secrets.HEROKU_API_KEY }}
+        run: |
+          heroku git:remote -a themis-ai
+          git push heroku main
 
       - name: Capture Heroku Logs on Failure
         if: failure()
