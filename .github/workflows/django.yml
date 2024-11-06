@@ -33,9 +33,10 @@ jobs:
           pip install --upgrade pip
           pip install -r requirements.txt
       - name: Add ffmpeg buildpack
-        run: heroku buildpacks:add --index 1 https://github.com/jonathanong/heroku-buildpack-ffmpeg --app law-themisai
+        run: heroku buildpacks:add --index 1 https://github.com/heroku/heroku-buildpack-ffmpeg --app law-themisai
         env:
           HEROKU_API_KEY: ${{ secrets.HEROKU_API_KEY }}
+
       
 
 
@@ -53,11 +54,9 @@ jobs:
         run: echo "$HEROKU_API_KEY" | heroku auth:token
 
       - name: Deploy to Heroku
-        uses: akhileshns/heroku-deploy@v3.13.15
-        with:
-          heroku_api_key: ${{ secrets.HEROKU_API_KEY }}
-          heroku_app_name: "law-themisai"
-          heroku_email: ${{ secrets.HEROKU_EMAIL }}
+        run: git push heroku HEAD:refs/heads/main --force
+        env:
+         HEROKU_API_KEY: ${{ secrets.HEROKU_API_KEY }}
 
       - name: Capture Heroku Logs on Failure
         if: failure()
