@@ -30,13 +30,11 @@ jobs:
           pip install -r requirements.txt
 
       - name: Deploy to Heroku (Force Push)
-        uses: akhileshns/heroku-deploy@v3.13.15
-        with:
-          heroku_api_key: ${{ secrets.HEROKU_API_KEY }}
-          heroku_app_name: "themis-ai"
-          heroku_email: ${{ secrets.HEROKU_EMAIL }}
-          dontuseforce: 0  # Allow force pushing
+        run: |
+          git remote add heroku https://git.heroku.com/themis-ai.git
+          git push --force heroku HEAD:main
         env:
+          HEROKU_API_KEY: ${{ secrets.HEROKU_API_KEY }}
           HF_AUTH_TOKEN: ${{ secrets.HF_AUTH_TOKEN }}
           AAI_KEY: ${{ secrets.AAI_KEY }}
           OPENAI_API_KEY: ${{ secrets.OPENAI_API_KEY }}
