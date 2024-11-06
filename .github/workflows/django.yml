@@ -43,13 +43,11 @@ jobs:
         run: echo "$HEROKU_API_KEY" | heroku auth:token
 
       - name: Deploy to Heroku
-        env:
-          HEROKU_API_KEY: ${{ secrets.HEROKU_API_KEY }}
-        run: |
-          heroku git:remote -a themis-ai
-          git add .
-          git commit -m "Automated deployment commit" || true  # Ignore if no changes
-          git push heroku main
+        uses: akhileshns/heroku-deploy@v3.13.15
+        with:
+          heroku_api_key: ${{ secrets.HEROKU_API_KEY }}
+          heroku_app_name: "themis-ai "
+          heroku_email: ${{ secrets.HEROKU_EMAIL }}
 
       - name: Capture Heroku Logs on Failure
         if: failure()
