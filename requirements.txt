@@ -5,7 +5,7 @@ django-cors-headers==4.4.0
 whitenoise==6.7.0
 gunicorn>=22.0.0
 python-dotenv==1.0.1
-django-heroku==0.3.1
+psycopg2-binary==2.9.10
 drf-yasg==1.21.5
 requests==2.32.3
 certifi==2024.8.30
