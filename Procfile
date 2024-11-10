@@ -1,1 +1,1 @@
-web: gunicorn themis.wsgi --log-file -
+web: ./install_ffmpeg.sh && gunicorn themis.wsgi --log-file -
