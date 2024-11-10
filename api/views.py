@@ -17,7 +17,13 @@ from django.db.models import Count
 from django.http import FileResponse, Http404
 from case_brief.models import CaseBrief
 import os
+import subprocess
+from django.http import HttpResponse
 
+
+def check_ffmpeg(request):
+    ffmpeg_check = subprocess.run(["ffmpeg", "-version"], capture_output=True, text=True)
+    return HttpResponse(f"FFmpeg Version:\n{ffmpeg_check.stdout}")
 
 class TranscriptionViewSet(mixins.CreateModelMixin, mixins.ListModelMixin, mixins.RetrieveModelMixin, viewsets.GenericViewSet):
     """
