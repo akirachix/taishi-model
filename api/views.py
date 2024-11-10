@@ -21,18 +21,6 @@ import subprocess
 from django.http import HttpResponse
 
 
-from django.http import JsonResponse
-
-def api_home(request):
-    return JsonResponse({
-        'message': 'Welcome to the API!',
-        'endpoints': [
-            '/api/transcriptions/',
-            '/api/diarizations/',
-        ]
-    })
-
-
 def check_ffmpeg(request):
     ffmpeg_check = subprocess.run(["ffmpeg", "-version"], capture_output=True, text=True)
     return HttpResponse(f"FFmpeg Version:\n{ffmpeg_check.stdout}")
