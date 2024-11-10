@@ -27,5 +27,5 @@ def ping(request):
 urlpatterns = [
     path("admin/", admin.site.urls),
     path('api/', include('api.urls')),
-    path('/_ping/', ping, name='ping'),
+    path('api/_ping/', ping, name='ping'),
 ]
