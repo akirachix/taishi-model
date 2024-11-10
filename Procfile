@@ -1,1 +1,1 @@
-web: bash -c "apt-get update && apt-get install -y ffmpeg && gunicorn themis.wsgi --log-file -"
+web: gunicorn themis.wsgi --log-file -
