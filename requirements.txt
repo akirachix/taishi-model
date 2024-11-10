@@ -20,3 +20,5 @@ openai==0.28
 pyannote.audio==3.3.2
 asgiref==3.8.1
 sqlparse==0.5.1
+dj-database-url==2.3.0
+
