@@ -11,7 +11,6 @@ from rest_framework.exceptions import NotFound
 from case_matching.signals import scrape_case_laws, extract_case_details
 from django.db.models import Count
 from django.http import FileResponse, Http404
-from caseBrief.models import CaseBrief
 from django.conf import settings
 import os
 import boto3
