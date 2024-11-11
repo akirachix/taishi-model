@@ -3,32 +3,44 @@ from django.dispatch import receiver
 from pydub import AudioSegment
 from transcription.models import Transcription
 from transcription_chunks.models import AudioChunk
+from django.conf import settings
+import boto3
+from io import BytesIO
 
 @receiver(post_save, sender=Transcription)
 def auto_chunk_audio(sender, instance, created, **kwargs):
-    """Chunks the audio file when a new Transcription is created."""
-    print(f"Signal received for Transcription: {instance.id}")  # Debugging line
-    
     if created and instance.audio_file and not instance.is_chunked:
         try:
-            # Load the audio file
-            audio = AudioSegment.from_file(instance.audio_file.path)
-            chunk_length_ms = 2 * 60 * 1000  # Chunk size of 5 minutes
+            # Download the audio file from S3
+            s3_client = boto3.client(
+                's3',
+                aws_access_key_id=settings.AWS_ACCESS_KEY_ID,
+                aws_secret_access_key=settings.AWS_SECRET_ACCESS_KEY,
+                region_name=settings.AWS_S3_REGION_NAME
+            )
+            
+            # Extract bucket name and file name from the URL
+            bucket_name = settings.AWS_STORAGE_BUCKET_NAME
+            file_name = instance.audio_file.split(f"https://{bucket_name}.s3.{settings.AWS_S3_REGION_NAME}.amazonaws.com/")[1]
+
+            # Fetch the file from S3
+            response = s3_client.get_object(Bucket=bucket_name, Key=file_name)
+            file_stream = BytesIO(response['Body'].read())
+
+            # Process the audio file
+            audio = AudioSegment.from_file(file_stream)
+            chunk_length_ms = 2 * 60 * 1000  # Chunk size of 2 minutes
             chunks = [audio[i:i + chunk_length_ms] for i in range(0, len(audio), chunk_length_ms)]
 
-            # Create an AudioChunk object for each chunk
             for index, chunk in enumerate(chunks):
-                chunk_file_path = f"audio_chunks/{instance.id}_chunk_{index}.wav"
-                chunk.export(chunk_file_path, format="wav")
+                chunk_file_name = f"audio_chunks/{instance.id}_chunk_{index}.wav"
+                chunk.export(chunk_file_name, format="wav")
 
                 AudioChunk.objects.create(
                     transcription=instance,
-                    chunk_file=chunk_file_path,
+                    chunk_file=chunk_file_name,
                     chunk_index=index
                 )
-
-                print(f"Created chunk {index} for transcription {instance.id}")  # Debugging line
-                
 
             # Update transcription status
             instance.is_chunked = True
