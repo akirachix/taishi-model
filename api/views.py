@@ -27,9 +27,6 @@ def check_ffmpeg(request):
     return HttpResponse(f"FFmpeg Version:\n{ffmpeg_check.stdout}")
 
 class TranscriptionViewSet(mixins.CreateModelMixin, mixins.ListModelMixin, mixins.RetrieveModelMixin, viewsets.GenericViewSet):
-    """
-    This viewset provides `list`, `create`, and `retrieve` actions for Transcriptions.
-    """
     queryset = Transcription.objects.all()
     serializer_class = TranscriptionSerializer
     parser_classes = [MultiPartParser, FormParser]
@@ -40,40 +37,37 @@ class TranscriptionViewSet(mixins.CreateModelMixin, mixins.ListModelMixin, mixin
         """
         serializer = self.get_serializer(data=request.data)
         if serializer.is_valid():
-            # Temporarily save the uploaded file to a specific directory on the EC2 instance
+            # Save the uploaded file temporarily
             audio_file = request.FILES['audio_file']
-            temp_dir = os.path.join(settings.MEDIA_ROOT, 'temp')
-            os.makedirs(temp_dir, exist_ok=True)  # Ensure the temp directory exists
-            temp_file_path = os.path.join(temp_dir, audio_file.name)
-            
-            # Write the file to the temp directory
+            temp_file_path = os.path.join(settings.MEDIA_ROOT, 'temp', audio_file.name)
+
+            # Ensure the temp directory exists
+            os.makedirs(os.path.dirname(temp_file_path), exist_ok=True)
+
+            # Save the uploaded file
             with open(temp_file_path, 'wb+') as temp_file:
                 for chunk in audio_file.chunks():
                     temp_file.write(chunk)
-            
-            try:
-                # Save the transcription record with the temporary file path in the model
-                transcription = serializer.save(audio_file=temp_file_path)
-                
-                # Process transcription (add your transcription logic here)
-                # Example: transcription.transcription_text = transcribe_audio(temp_file_path)
-                transcription.save()
-                
-                # Return the response with transcription details
-                response_data = {
-                    'id': transcription.id,
-                    'message': 'Transcription processed successfully.',
-                    'status': transcription.status,
-                    'transcription_text': transcription.transcription_text,
-                }
-                
-                return Response(response_data, status=status.HTTP_201_CREATED)
-            
-            finally:
-                # Clean up: delete the temporary file after processing
-                if os.path.exists(temp_file_path):
-                    os.remove(temp_file_path)
-        
+
+            # Update serializer with the temporary file path (to store the path in DB)
+            serializer.save(audio_file=temp_file_path)
+            transcription = serializer.instance
+
+            # Process transcription (add your transcription logic here)
+            # Example: transcription.transcription_text = transcribe_audio(temp_file_path)
+            transcription.save()
+
+            # Clean up the temporary file after processing
+            os.remove(temp_file_path)
+
+            # Return the response
+            return Response({
+                'id': transcription.id,
+                'message': 'Transcription processed successfully.',
+                'status': transcription.status,
+                'transcription_text': transcription.transcription_text,
+            }, status=status.HTTP_201_CREATED)
+
         return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
 
     @action(detail=True, methods=['get'])
