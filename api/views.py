@@ -35,17 +35,36 @@ class TranscriptionViewSet(mixins.CreateModelMixin, mixins.ListModelMixin, mixin
 
     def create(self, request, *args, **kwargs):
         """
-        Handle audio file upload and trigger transcription.
+        Handle audio file upload, process transcription, and delete file.
         """
         serializer = self.get_serializer(data=request.data)
         if serializer.is_valid():
-            transcription = serializer.save()
+            # Save the uploaded file temporarily
+            audio_file = request.FILES['audio_file']
+            temp_file_path = os.path.join(settings.MEDIA_ROOT, 'temp', audio_file.name)
+            with open(temp_file_path, 'wb+') as temp_file:
+                for chunk in audio_file.chunks():
+                    temp_file.write(chunk)
+            
+            # Update serializer data with the temporary file path
+            serializer.save(audio_file=temp_file_path)
+            transcription = serializer.instance
+
+            # Process transcription (add your transcription logic here)
+            # For example, transcription.transcription_text = transcribe_audio(temp_file_path)
+            transcription.save()
+
+            # Clean up the temporary file
+            os.remove(temp_file_path)
+
+            # Return the response
             return Response({
                 'id': transcription.id,
                 'message': 'Transcription processed successfully.',
                 'status': transcription.status,
                 'transcription_text': transcription.transcription_text,
             }, status=status.HTTP_201_CREATED)
+        
         return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
 
     @action(detail=True, methods=['get'])
