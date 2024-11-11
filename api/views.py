@@ -12,6 +12,7 @@ from case_matching.signals import scrape_case_laws, extract_case_details
 from django.db.models import Count
 from django.http import FileResponse, Http404
 from django.conf import settings
+from case_brief.models import *
 import os
 import boto3
 from django.core.files.storage import default_storage
