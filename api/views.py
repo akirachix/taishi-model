@@ -17,6 +17,7 @@ from django.db.models import Count
 from django.http import FileResponse, Http404
 from case_brief.models import CaseBrief
 import os
+from django.conf import settings
 import subprocess
 from django.http import HttpResponse
 
