@@ -45,10 +45,9 @@ class TranscriptionViewSet(mixins.CreateModelMixin,
         if not file:
             return Response({"error": "No audio file provided"}, status=400)
 
-        # Check if the file is a valid file-like object
-        if not hasattr(file, 'read'):
-            return Response({"error": "Invalid file provided"}, status=400)
-        
+        # Log the type of file object
+        print(f"Received file type: {type(file)}")  # This should be <class 'django.core.files.uploadedfile.InMemoryUploadedFile'>
+
         file_name = f"transcription/{file.name}"
         print(f"Received file: {file.name}")
 
