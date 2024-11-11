@@ -27,9 +27,16 @@ def check_ffmpeg(request):
     ffmpeg_check = subprocess.run(["ffmpeg", "-version"], capture_output=True, text=True)
     return HttpResponse(f"FFmpeg Version:\n{ffmpeg_check.stdout}")
 
-class TranscriptionViewSet(mixins.CreateModelMixin, viewsets.GenericViewSet):
+class TranscriptionViewSet(mixins.CreateModelMixin, 
+                            mixins.ListModelMixin, 
+                            mixins.RetrieveModelMixin, 
+                            viewsets.GenericViewSet):
+    """
+    This viewset provides `list`, `create`, and `retrieve` actions for Transcriptions.
+    """
     queryset = Transcription.objects.all()
     serializer_class = TranscriptionSerializer
+    parser_classes = [MultiPartParser, FormParser]
     
     def create(self, request, *args, **kwargs):
         """Handle audio file upload, process transcription, and delete file."""
