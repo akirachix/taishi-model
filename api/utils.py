@@ -332,7 +332,6 @@ def save_as_pdf(brief, filename, image_path=None):
     pdf.output(filename)
 
 
-
 def upload_file_to_s3(file, file_name):
     s3_client = boto3.client('s3', 
                              aws_access_key_id=settings.AWS_ACCESS_KEY_ID,
@@ -340,11 +339,18 @@ def upload_file_to_s3(file, file_name):
                              region_name=settings.AWS_S3_REGION_NAME)
 
     try:
+        # Log to verify file and file_name
+        print(f"Uploading file: {file_name}")
+        print(f"File type: {type(file)}")  # Should be <class 'django.core.files.uploadedfile.InMemoryUploadedFile'>
+
         s3_client.upload_fileobj(file, settings.AWS_STORAGE_BUCKET_NAME, file_name)
         file_url = f"https://{settings.AWS_STORAGE_BUCKET_NAME}.s3.{settings.AWS_S3_REGION_NAME}.amazonaws.com/{file_name}"
+
         return file_url
     except NoCredentialsError:
         raise ValueError("Credentials not available")
-
+    except Exception as e:
+        print(f"Error uploading to S3: {e}")
+        raise
 
 

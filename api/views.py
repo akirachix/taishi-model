@@ -45,6 +45,10 @@ class TranscriptionViewSet(mixins.CreateModelMixin,
         if not file:
             return Response({"error": "No audio file provided"}, status=400)
 
+        # Check if the file is a valid file-like object
+        if not hasattr(file, 'read'):
+            return Response({"error": "Invalid file provided"}, status=400)
+        
         file_name = f"transcription/{file.name}"
         print(f"Received file: {file.name}")
 
