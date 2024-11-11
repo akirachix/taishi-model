@@ -17,55 +17,57 @@ from django.db.models import Count
 from django.http import FileResponse, Http404
 from case_brief.models import CaseBrief
 import os
+from django.conf import settings
 import subprocess
 from django.http import HttpResponse
+from .utils import *
 
 
 def check_ffmpeg(request):
     ffmpeg_check = subprocess.run(["ffmpeg", "-version"], capture_output=True, text=True)
     return HttpResponse(f"FFmpeg Version:\n{ffmpeg_check.stdout}")
 
-class TranscriptionViewSet(mixins.CreateModelMixin, mixins.ListModelMixin, mixins.RetrieveModelMixin, viewsets.GenericViewSet):
+class TranscriptionViewSet(mixins.CreateModelMixin, 
+                            mixins.ListModelMixin, 
+                            mixins.RetrieveModelMixin, 
+                            viewsets.GenericViewSet):
     """
     This viewset provides `list`, `create`, and `retrieve` actions for Transcriptions.
     """
     queryset = Transcription.objects.all()
     serializer_class = TranscriptionSerializer
     parser_classes = [MultiPartParser, FormParser]
-
+    
     def create(self, request, *args, **kwargs):
-        """
-        Handle audio file upload, process transcription, and delete file.
-        """
-        serializer = self.get_serializer(data=request.data)
-        if serializer.is_valid():
-            # Save the uploaded file temporarily
-            audio_file = request.FILES['audio_file']
-            temp_file_path = os.path.join(settings.MEDIA_ROOT, 'temp', audio_file.name)
-            with open(temp_file_path, 'wb+') as temp_file:
-                for chunk in audio_file.chunks():
-                    temp_file.write(chunk)
-            
-            # Update serializer data with the temporary file path
-            serializer.save(audio_file=temp_file_path)
-            transcription = serializer.instance
+    """Handle audio file upload, process transcription, and delete file."""
+    file = request.FILES.get('audio_file')
+    
+    if not file:
+        return Response({"error": "No audio file provided"}, status=400)
 
-            # Process transcription (add your transcription logic here)
-            # For example, transcription.transcription_text = transcribe_audio(temp_file_path)
-            transcription.save()
+    file_name = f"transcription/{file.name}"
+    print(f"Received file: {file.name}")
 
-            # Clean up the temporary file
-            os.remove(temp_file_path)
+    # Upload file to S3
+    try:
+        file_url = upload_file_to_s3(file, file_name)
+        print(f"File uploaded to: {file_url}")
+    except Exception as e:
+        return Response({"error": f"Failed to upload file: {str(e)}"}, status=500)
+    
+    # Save the file URL in the database
+    serializer = self.get_serializer(data=request.data)
+    if serializer.is_valid():
+        transcription = serializer.save(audio_file=file_url)
+        return Response({
+            "id": transcription.id,
+            "message": "Transcription processed successfully.",
+            "status": transcription.status,
+            "transcription_text": transcription.transcription_text
+        })
+    else:
+        return Response(serializer.errors, status=400)
 
-            # Return the response
-            return Response({
-                'id': transcription.id,
-                'message': 'Transcription processed successfully.',
-                'status': transcription.status,
-                'transcription_text': transcription.transcription_text,
-            }, status=status.HTTP_201_CREATED)
-        
-        return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
 
     @action(detail=True, methods=['get'])
     def get_transcription(self, request, pk=None):
