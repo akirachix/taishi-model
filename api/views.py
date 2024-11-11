@@ -1,7 +1,3 @@
-from django.shortcuts import render
-
-# Create your views here.
-
 from rest_framework import generics, viewsets, status, mixins
 from .serializers import TranscriptionSerializer, DiarizedSegmentSerializer, AudioChunkSerializer, CaseMatchingSerializers,CaseBriefSerializer
 from transcription.models import Transcription
@@ -15,22 +11,12 @@ from rest_framework.exceptions import NotFound
 from case_matching.signals import scrape_case_laws, extract_case_details
 from django.db.models import Count
 from django.http import FileResponse, Http404
-from case_brief.models import CaseBrief
-import os
+from caseBrief.models import CaseBrief
 from django.conf import settings
-import subprocess
-from django.http import HttpResponse
-from .utils import *
+import os
 
 
-def check_ffmpeg(request):
-    ffmpeg_check = subprocess.run(["ffmpeg", "-version"], capture_output=True, text=True)
-    return HttpResponse(f"FFmpeg Version:\n{ffmpeg_check.stdout}")
-
-class TranscriptionViewSet(mixins.CreateModelMixin, 
-                            mixins.ListModelMixin, 
-                            mixins.RetrieveModelMixin, 
-                            viewsets.GenericViewSet):
+class TranscriptionViewSet(mixins.CreateModelMixin, mixins.ListModelMixin, mixins.RetrieveModelMixin, viewsets.GenericViewSet):
     """
     This viewset provides `list`, `create`, and `retrieve` actions for Transcriptions.
     """
@@ -39,40 +25,49 @@ class TranscriptionViewSet(mixins.CreateModelMixin,
     parser_classes = [MultiPartParser, FormParser]
 
     def create(self, request, *args, **kwargs):
-        """Handle audio file upload, process transcription, and delete file."""
+        """
+        Handle audio file upload, save locally, and trigger transcription.
+        """
+        # Get the uploaded file from the request
         file = request.FILES.get('audio_file')
-        
+
         if not file:
-            return Response({"error": "No audio file provided"}, status=400)
-
-        # Log the type of file object
-        print(f"Received file type: {type(file)}")  # This should be <class 'django.core.files.uploadedfile.InMemoryUploadedFile'>
-
-        file_name = f"transcription/{file.name}"
-        print(f"Received file: {file.name}")
-
-        # Upload file to S3
-        try:
-            # Use Django Storages to upload the file to S3 automatically
-            # Your storage backend will handle it, so you don't need to use `upload_file_to_s3`
-            file_url = file.name  # Django will handle the file upload to S3 via storage backend
-            file.save()  # Save the file using the default storage
-            print(f"File uploaded to: {file_url}")
-        except Exception as e:
-            return Response({"error": f"Failed to upload file: {str(e)}"}, status=500)
+            return Response({"error": "No audio file provided"}, status=status.HTTP_400_BAD_REQUEST)
         
-        # Save the file URL in the database
-        serializer = self.get_serializer(data=request.data)
-        if serializer.is_valid():
-            transcription = serializer.save(audio_file=file_url)
-            return Response({
-                "id": transcription.id,
-                "message": "Transcription processed successfully.",
-                "status": transcription.status,
-                "transcription_text": transcription.transcription_text
-            })
-        else:
-            return Response(serializer.errors, status=400)
+        # Define the local path where the file will be saved
+        file_path = os.path.join(settings.MEDIA_ROOT, file.name)  # You can customize this path
+        
+        # Save the file locally on EC2
+        try:
+            with open(file_path, 'wb') as f:
+                for chunk in file.chunks():
+                    f.write(chunk)
+            
+            # Log that the file was successfully saved
+            print(f"File saved locally at: {file_path}")
+            
+            # Now, create a transcription object in the database
+            # We need to pass the file path or URL to the transcription model
+            serializer = self.get_serializer(data=request.data)
+            if serializer.is_valid():
+                transcription = serializer.save(audio_file=file_path)  # Save the local file path to the DB
+
+                # Proceed with additional logic like triggering the transcription process
+                # (this could be a call to an external service, or some internal processing function)
+
+                return Response({
+                    'id': transcription.id,
+                    'message': 'Transcription processed successfully.',
+                    'status': transcription.status,
+                    'transcription_text': transcription.transcription_text,
+                }, status=status.HTTP_201_CREATED)
+        
+        except Exception as e:
+            # If there’s any error while saving the file, return an error response
+            return Response({"error": f"Error saving file locally on EC2: {str(e)}"}, 
+                             status=status.HTTP_500_INTERNAL_SERVER_ERROR)
+        
+        return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
 
     @action(detail=True, methods=['get'])
     def get_transcription(self, request, pk=None):
@@ -264,7 +259,7 @@ def download_case_brief_pdf(request, transcription_id):
         # Retrieve the CaseBrief object using transcription_id
         case_brief = CaseBrief.objects.get(transcription__id=transcription_id)
         
-        # Ensure there’s a path to the saved PDF
+        # Ensure there's a path to the saved PDF
         if case_brief.pdf_file_path and os.path.exists(case_brief.pdf_file_path):
             # Serve the PDF file for download
             return FileResponse(
@@ -305,4 +300,3 @@ class CaseBriefDetailView(generics.ListAPIView):
             return Response(serializer.data, status=status.HTTP_200_OK)
         else:
             return Response({"error": "No case briefs found for this transcription"}, status=status.HTTP_404_NOT_FOUND)
-
