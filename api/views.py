@@ -14,6 +14,8 @@ from django.http import FileResponse, Http404
 from caseBrief.models import CaseBrief
 from django.conf import settings
 import os
+import boto3
+from django.core.files.storage import default_storage
 
 
 class TranscriptionViewSet(mixins.CreateModelMixin, mixins.ListModelMixin, mixins.RetrieveModelMixin, viewsets.GenericViewSet):
@@ -28,48 +30,34 @@ class TranscriptionViewSet(mixins.CreateModelMixin, mixins.ListModelMixin, mixin
         """
         Handle audio file upload, save locally, and trigger transcription.
         """
-        # Get the uploaded file from the request
-        file = request.FILES.get('audio_file')
+        audio_file = request.FILES.get('audio_file')
 
-        if not file:
-            return Response({"error": "No audio file provided"}, status=status.HTTP_400_BAD_REQUEST)
-        
-        # Define the local path where the file will be saved
-        file_path = os.path.join(settings.MEDIA_ROOT, file.name)  # You can customize this path
-        
-        # Save the file locally on EC2
-        try:
-            with open(file_path, 'wb') as f:
-                for chunk in file.chunks():
-                    f.write(chunk)
-            
-            # Log that the file was successfully saved
-            print(f"File saved locally at: {file_path}")
-            
-            # Now, create a transcription object in the database
-            # We need to pass the file path or URL to the transcription model
-            serializer = self.get_serializer(data=request.data)
-            if serializer.is_valid():
-                transcription = serializer.save(audio_file=file_path)  # Save the local file path to the DB
+        if audio_file:
+            print(f"File received: {audio_file.name}")
+            print(f"File size: {audio_file.size} bytes")
+            print(f"File type: {audio_file.content_type}")
 
-                # Proceed with additional logic like triggering the transcription process
-                # (this could be a call to an external service, or some internal processing function)
+            # Save the file locally (or process for S3 upload)
+            try:
+                # Save the file locally (for testing purposes, you can modify to save to S3)
+                file_name = default_storage.save(f"audio_files/{audio_file.name}", audio_file)
+                
+                # Optionally upload to S3 if required
+                s3_client = boto3.client('s3')
+                bucket_name = 'taishibucket'
+                s3_key = f"audio_files/{audio_file.name}"
+                s3_client.upload_fileobj(audio_file, bucket_name, s3_key)
 
                 return Response({
-                    'id': transcription.id,
-                    'message': 'Transcription processed successfully.',
-                    'status': transcription.status,
-                    'transcription_text': transcription.transcription_text,
+                    'message': 'File uploaded and transcription triggered successfully.',
+                    'file_name': file_name,
+                    's3_path': f"s3://{bucket_name}/{s3_key}"
                 }, status=status.HTTP_201_CREATED)
-        
-        except Exception as e:
-            # If there’s any error while saving the file, return an error response
-            return Response({"error": f"Error saving file locally on EC2: {str(e)}"}, 
-                             status=status.HTTP_500_INTERNAL_SERVER_ERROR)
-        
-        return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
 
-    @action(detail=True, methods=['get'])
+            except Exception as e:
+                return Response({'error': f'Failed to upload file: {str(e)}'}, status=status.HTTP_400_BAD_REQUEST)
+        else:
+            return Response({'error': 'No file provided in the request.'}, status=status.HTTP_400_BAD_REQUEST)
     def get_transcription(self, request, pk=None):
         """
         Return the transcription status and text.
