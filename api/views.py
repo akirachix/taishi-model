@@ -37,7 +37,7 @@ class TranscriptionViewSet(mixins.CreateModelMixin,
     queryset = Transcription.objects.all()
     serializer_class = TranscriptionSerializer
     parser_classes = [MultiPartParser, FormParser]
-    
+
     def create(self, request, *args, **kwargs):
         """Handle audio file upload, process transcription, and delete file."""
         file = request.FILES.get('audio_file')
@@ -53,7 +53,10 @@ class TranscriptionViewSet(mixins.CreateModelMixin,
 
         # Upload file to S3
         try:
-            file_url = upload_file_to_s3(file, file_name)
+            # Use Django Storages to upload the file to S3 automatically
+            # Your storage backend will handle it, so you don't need to use `upload_file_to_s3`
+            file_url = file.name  # Django will handle the file upload to S3 via storage backend
+            file.save()  # Save the file using the default storage
             print(f"File uploaded to: {file_url}")
         except Exception as e:
             return Response({"error": f"Failed to upload file: {str(e)}"}, status=500)
@@ -70,7 +73,6 @@ class TranscriptionViewSet(mixins.CreateModelMixin,
             })
         else:
             return Response(serializer.errors, status=400)
-
 
     @action(detail=True, methods=['get'])
     def get_transcription(self, request, pk=None):
