@@ -20,3 +20,6 @@ pyannote.audio==3.3.2  # Only if necessary; optimize imports if possible
 asgiref==3.8.1
 sqlparse==0.5.1
 dj-database-url==2.3.0
+psycopg2-binary==2.9.10
+django-cors-headers==4.6.0
+
