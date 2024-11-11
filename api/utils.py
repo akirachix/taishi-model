@@ -2,7 +2,7 @@ import time
 import os
 from django.conf import settings
 import assemblyai as aai
-
+import boto3
 
 aai.settings.api_key = settings.AAI_KEY
 
@@ -328,6 +328,23 @@ def save_as_pdf(brief, filename, image_path=None):
                 pdf.ln(5)
 
     pdf.output(filename)
+
+
+s3_client = boto3.client(
+    's3',
+    aws_access_key_id=settings.AWS_ACCESS_KEY_ID,
+    aws_secret_access_key=settings.AWS_SECRET_ACCESS_KEY,
+    region_name=settings.AWS_S3_REGION_NAME
+)
+
+def upload_file_to_s3(file, filename):
+    s3_client.upload_fileobj(
+        file,
+        settings.AWS_STORAGE_BUCKET_NAME,
+        filename,
+        ExtraArgs={'ContentType': file.content_type}
+    )
+    return f"https://{settings.AWS_STORAGE_BUCKET_NAME}.s3.{settings.AWS_S3_REGION_NAME}.amazonaws.com/{filename}"
 
 
 
