@@ -39,25 +39,35 @@ class TranscriptionViewSet(mixins.CreateModelMixin,
     parser_classes = [MultiPartParser, FormParser]
     
     def create(self, request, *args, **kwargs):
-        """Handle audio file upload, process transcription, and delete file."""
-        file = request.FILES['audio_file']
-        file_name = f"transcription/{file.name}"
-        
-        # Upload file to S3
-        file_url = upload_file_to_s3(file, file_name)
-        
-        # Save the file URL in the database
-        serializer = self.get_serializer(data=request.data)
-        if serializer.is_valid():
-            transcription = serializer.save(audio_file=file_url)
-            return Response({
-                'id': transcription.id,
-                'message': 'Transcription processed successfully.',
-                'status': transcription.status,
-                'transcription_text': transcription.transcription_text,
-            }, status=201)
+    """Handle audio file upload, process transcription, and delete file."""
+    file = request.FILES.get('audio_file')
+    
+    if not file:
+        return Response({"error": "No audio file provided"}, status=400)
 
+    file_name = f"transcription/{file.name}"
+    print(f"Received file: {file.name}")
+
+    # Upload file to S3
+    try:
+        file_url = upload_file_to_s3(file, file_name)
+        print(f"File uploaded to: {file_url}")
+    except Exception as e:
+        return Response({"error": f"Failed to upload file: {str(e)}"}, status=500)
+    
+    # Save the file URL in the database
+    serializer = self.get_serializer(data=request.data)
+    if serializer.is_valid():
+        transcription = serializer.save(audio_file=file_url)
+        return Response({
+            "id": transcription.id,
+            "message": "Transcription processed successfully.",
+            "status": transcription.status,
+            "transcription_text": transcription.transcription_text
+        })
+    else:
         return Response(serializer.errors, status=400)
+
 
     @action(detail=True, methods=['get'])
     def get_transcription(self, request, pk=None):
