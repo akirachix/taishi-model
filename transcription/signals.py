@@ -1,4 +1,5 @@
 import os
+import logging
 from pydub import AudioSegment
 from django.db.models.signals import post_save
 from django.dispatch import receiver
@@ -10,10 +11,25 @@ os.environ["PATH"] += ":/usr/local/bin"
 AudioSegment.ffmpeg = "/usr/local/bin/ffmpeg"
 AudioSegment.ffprobe = "/usr/local/bin/ffprobe"
 
+# Set up logging
+logger = logging.getLogger(__name__)
+logger.setLevel(logging.DEBUG)  # Set to desired log level
+
+# Create a handler to log to the console (stdout)
+console_handler = logging.StreamHandler()
+console_handler.setLevel(logging.DEBUG)
+
+# Create a formatter and set it for the handler
+formatter = logging.Formatter('%(asctime)s - %(name)s - %(levelname)s - %(message)s')
+console_handler.setFormatter(formatter)
+
+# Add the handler to the logger
+logger.addHandler(console_handler)
+
 @receiver(post_save, sender=Transcription)
 def auto_chunk_audio(sender, instance, created, **kwargs):
     """Chunks the audio file when a new Transcription is created."""
-    print(f"Signal received for Transcription: {instance.id}")  # Debugging line
+    logger.debug(f"Signal received for Transcription: {instance.id}")  # Debugging line
 
     if created and instance.audio_file and not instance.is_chunked:
         try:
@@ -23,7 +39,7 @@ def auto_chunk_audio(sender, instance, created, **kwargs):
                 raise FileNotFoundError(f"Audio file does not exist at {audio_file_path}")
 
             # Load the audio file
-            print(f"Loading audio file for transcription {instance.id} from {audio_file_path}")
+            logger.debug(f"Loading audio file for transcription {instance.id} from {audio_file_path}")
             audio = AudioSegment.from_file(audio_file_path)
 
             chunk_length_ms = 2 * 60 * 1000  # Chunk size of 2 minutes (adjust as needed)
@@ -40,7 +56,7 @@ def auto_chunk_audio(sender, instance, created, **kwargs):
                     chunk_index=index
                 )
 
-                print(f"Created chunk {index} for transcription {instance.id}")
+                logger.debug(f"Created chunk {index} for transcription {instance.id}")
 
             # Update transcription status
             instance.is_chunked = True
@@ -50,12 +66,12 @@ def auto_chunk_audio(sender, instance, created, **kwargs):
         except FileNotFoundError as e:
             instance.status = 'failed'
             instance.save(update_fields=['status'])
-            print(f"FileNotFoundError while processing transcription {instance.id}: {str(e)}")
+            logger.error(f"FileNotFoundError while processing transcription {instance.id}: {str(e)}")
 
         except Exception as e:
             instance.status = 'failed'
             instance.save(update_fields=['status'])
-            print(f"Error chunking audio file for transcription {instance.id}: {str(e)}")
+            logger.error(f"Error chunking audio file for transcription {instance.id}: {str(e)}")
 
         # Additional logging for troubleshooting
-        print(f"Finished processing transcription {instance.id}.")
+        logger.debug(f"Finished processing transcription {instance.id}.")
