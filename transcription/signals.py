@@ -20,6 +20,13 @@ console_handler.setFormatter(formatter)
 # Add the handler to the logger
 logger.addHandler(console_handler)
 
+import os
+# Set the path explicitly for pydub
+os.environ["PATH"] += ":/usr/local/bin"
+AudioSegment.ffmpeg = "/usr/local/bin/ffmpeg"
+AudioSegment.ffprobe = "/usr/local/bin/ffprobe"
+
+
 @receiver(post_save, sender=Transcription)
 def auto_chunk_audio(sender, instance, created, **kwargs):
     """Chunks the audio file when a new Transcription is created."""
