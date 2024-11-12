@@ -91,9 +91,14 @@ WSGI_APPLICATION = "themis.wsgi.application"
 import dj_database_url
 
 DATABASES = {
-    'default': dj_database_url.config(
-        default=os.getenv('DATABASE_URL', 'postgres://user:password@localhost/dbname')
-    )
+    'default': {
+        'ENGINE': 'django.db.backends.postgresql',
+        'NAME': 'themis',  # Name of the database
+        'USER': 'themis_user',  # Username
+        'PASSWORD': 'new_password',  # Password you set
+        'HOST': 'localhost',  # Host where PostgreSQL is running
+        'PORT': '5432',  # Default port for PostgreSQL
+    }
 }
 
 
