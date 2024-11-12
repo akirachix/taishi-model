@@ -3,8 +3,6 @@ from django.dispatch import receiver
 from pydub import AudioSegment
 from transcription.models import Transcription
 from transcription_chunks.models import AudioChunk
-import boto3
-import tempfile
 
 @receiver(post_save, sender=Transcription)
 def auto_chunk_audio(sender, instance, created, **kwargs):
@@ -13,36 +11,19 @@ def auto_chunk_audio(sender, instance, created, **kwargs):
     
     if created and instance.audio_file and not instance.is_chunked:
         try:
-            # Download the file from S3 (if it's stored in S3)
-            s3_client = boto3.client('s3')
-            bucket_name = 'taishibucket'
-            file_path = instance.audio_file.name  # Assuming it's stored in S3
-            
-            # Create a temporary file to hold the downloaded audio
-            with tempfile.NamedTemporaryFile(delete=False) as tmp_file:
-                s3_client.download_fileobj(bucket_name, file_path, tmp_file)
-                tmp_file.close()  # Close the file to avoid read issues
-
-                # Load the audio from the temporary file
-                audio = AudioSegment.from_file(tmp_file.name)
-
-            chunk_length_ms = 2 * 60 * 1000  # Chunk size of 2 minutes (120000 ms)
+            # Load the audio file
+            audio = AudioSegment.from_file(instance.audio_file.path)
+            chunk_length_ms = 2 * 60 * 1000  # Chunk size of 5 minutes
             chunks = [audio[i:i + chunk_length_ms] for i in range(0, len(audio), chunk_length_ms)]
 
             # Create an AudioChunk object for each chunk
             for index, chunk in enumerate(chunks):
                 chunk_file_path = f"audio_chunks/{instance.id}_chunk_{index}.wav"
-                
-                # Export chunk to a temporary file or directly to S3
                 chunk.export(chunk_file_path, format="wav")
-
-                # Optionally, upload chunk to S3 (if needed)
-                s3_chunk_path = f"audio_chunks/{instance.id}_chunk_{index}.wav"
-                s3_client.upload_file(chunk_file_path, bucket_name, s3_chunk_path)
 
                 AudioChunk.objects.create(
                     transcription=instance,
-                    chunk_file=s3_chunk_path,  # Store S3 path instead of local file path
+                    chunk_file=chunk_file_path,
                     chunk_index=index
                 )
 

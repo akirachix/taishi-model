@@ -28,53 +28,20 @@ class TranscriptionViewSet(mixins.CreateModelMixin, mixins.ListModelMixin, mixin
 
     def create(self, request, *args, **kwargs):
         """
-        Handle audio file upload, save locally or directly to S3, and trigger transcription.
+        Handle audio file upload and trigger transcription.
         """
-        audio_file = request.FILES.get('audio_file')
-
-        if not audio_file:
-            return Response({'error': 'No file provided in the request.'}, status=status.HTTP_400_BAD_REQUEST)
-
-        print(f"File received: {audio_file.name}")
-        print(f"File size: {audio_file.size} bytes")
-        print(f"File type: {audio_file.content_type}")
-
-        # Validate file type and size (optional)
-        allowed_extensions = ['.m4a', '.mp3', '.wav']
-        file_extension = audio_file.name.rsplit('.', 1)[-1].lower()
-        if f'.{file_extension}' not in allowed_extensions:
-            return Response({'error': 'Invalid file type. Only .m4a, .mp3, and .wav files are allowed.'}, status=status.HTTP_400_BAD_REQUEST)
-        
-        max_size = 50 * 1024 * 1024  # 50MB size limit (example)
-        if audio_file.size > max_size:
-            return Response({'error': f'File size exceeds the {max_size / (1024 * 1024)}MB limit.'}, status=status.HTTP_400_BAD_REQUEST)
-
-        # Save file directly to S3 (skip local storage if not needed)
-        try:
-            # Use boto3 to upload directly to S3
-            s3_client = boto3.client('s3')
-            bucket_name = 'taishibucket'
-            s3_key = f"audio_files/{audio_file.name}"
-
-            s3_client.upload_fileobj(audio_file, bucket_name, s3_key)
-            s3_url = f"s3://{bucket_name}/{s3_key}"
-
-            # Optionally create a Transcription model entry here
-            transcription = Transcription.objects.create(
-                file_name=audio_file.name,
-                s3_path=s3_url,
-                user=request.user  # Assuming you have user authentication set up
-            )
+        serializer = self.get_serializer(data=request.data)
+        if serializer.is_valid():
+            transcription = serializer.save()
             return Response({
-                'message': 'File uploaded and transcription triggered successfully.',
-                's3_path': s3_url
+                'id': transcription.id,
+                'message': 'Transcription processed successfully.',
+                'status': transcription.status,
+                'transcription_text': transcription.transcription_text,
             }, status=status.HTTP_201_CREATED)
+        return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
 
-        except Exception as e:
-            # Log the error for debugging (better logging system can be used in production)
-            print(f"Error uploading file to S3: {str(e)}")
-            return Response({'error': f'Failed to upload file: {str(e)}'}, status=status.HTTP_400_BAD_REQUEST)
-        
+    @action(detail=True, methods=['get'])
     def get_transcription(self, request, pk=None):
         """
         Return the transcription status and text.
@@ -103,6 +70,7 @@ class TranscriptionViewSet(mixins.CreateModelMixin, mixins.ListModelMixin, mixin
         }, status=status.HTTP_200_OK)
         
         
+
 
 
 class TranscriptionDetailView(generics.RetrieveUpdateDestroyAPIView):
