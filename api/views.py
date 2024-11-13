@@ -161,8 +161,11 @@ class CaseMatchingListView(generics.ListCreateAPIView):
                 transcription=transcription,
                 case={"details": extracted_details, "related_cases": case_laws}
             )
+            logger.info(f"successfully created case macthing record {case_matching}____")
+
             
             serializer = CaseMatchingSerializers(case_matching)
+            logger.info(f"successful @@@@{serializer.data}____")
             return Response(serializer.data, status=status.HTTP_201_CREATED)
 
         except Transcription.DoesNotExist:
