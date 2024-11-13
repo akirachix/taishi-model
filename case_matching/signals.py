@@ -109,7 +109,9 @@ def scrape_case_laws(search_term, limit=10):
 
     # Automatically download and use the correct chromedriver version
     try:
-        driver = webdriver.Chrome(ChromeDriverManager().install(), options=chrome_options)
+        # Using the correct chromedriver path from webdriver_manager
+        driver_path = ChromeDriverManager().install()
+        driver = webdriver.Chrome(executable_path=driver_path, options=chrome_options)
     except Exception as e:
         logger.error(f"Failed to start WebDriver: {str(e)}")
         return []
