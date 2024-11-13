@@ -9,6 +9,8 @@ import time
 from django.db.models.signals import post_save
 from django.dispatch import receiver
 from case_matching.models import Case_matching
+from selenium.webdriver.chrome.options import Options
+from webdriver_manager.chrome import ChromeDriverManager
 
 # Set up logging
 logger = logging.getLogger(__name__)
@@ -88,6 +90,10 @@ def extract_case_details(text: str) -> List[str]:
 # Scraping (Similar cases generation)
 
 def scrape_case_laws(search_term, limit=10):
+    """
+    Scrape case laws based on a search term from the Kenya Law website.
+    Automatically uses the correct ChromeDriver version based on the installed version of Chrome.
+    """
     encoded_search_term = urllib.parse.quote(search_term)
     url = f"https://new.kenyalaw.org/search/?q={encoded_search_term}&court=High+Court&doc_type=Judgment"
     logger.info(f"Opening URL: {url}")
@@ -101,14 +107,19 @@ def scrape_case_laws(search_term, limit=10):
     chrome_options.add_experimental_option("excludeSwitches", ["enable-automation"])
     chrome_options.add_experimental_option('useAutomationExtension', False)
 
-    driver = webdriver.Chrome(options=chrome_options)
+    # Automatically download and use the correct chromedriver version
+    try:
+        driver = webdriver.Chrome(ChromeDriverManager().install(), options=chrome_options)
+    except Exception as e:
+        logger.error(f"Failed to start WebDriver: {str(e)}")
+        return []
 
     case_laws = []
     try:
         driver.get(url)
         logger.info("Page loaded successfully")
 
-        # Waiting time
+        # Wait for the page to load completely
         time.sleep(10)
 
         logger.debug(f"Page Title: {driver.title}")
@@ -189,8 +200,6 @@ def scrape_case_laws(search_term, limit=10):
 
     finally:
         driver.quit()
-
-        
 
 # @receiver(post_save, sender=Case_matching)
 # def process_case_matching(sender, instance, created, **kwargs):
