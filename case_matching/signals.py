@@ -192,21 +192,22 @@ def scrape_case_laws(search_term, limit=10):
 
         
 
-@receiver(post_save, sender=Case_matching)
-def process_case_matching(sender, instance, created, **kwargs):
-    if created:
-        transcription_text = instance.transcription.transcription_text
-        all_details = []
-        details = extract_case_details(transcription_text)
-        all_details.extend(details)
-        all_details = list(dict.fromkeys(all_details))
-        search_term = " ".join(all_details)
+# @receiver(post_save, sender=Case_matching)
+# def process_case_matching(sender, instance, created, **kwargs):
+#     logger.info(f"processing case matching for {instance}::")
+#     if created:
+#         transcription_text = instance.transcription.transcription_text
+#         all_details = []
+#         details = extract_case_details(transcription_text)
+#         all_details.extend(details)
+#         all_details = list(dict.fromkeys(all_details))
+#         search_term = " ".join(all_details)
 
-        # Scrape cases based on extracted search term
-        scraped_cases = scrape_case_laws(search_term)
+#         # Scrape cases based on extracted search term
+#         scraped_cases = scrape_case_laws(search_term)
 
-        # Save scraped cases to instance
-        instance.case = [{"title": title, "link": link} for title, link in scraped_cases]
-        instance.save()
+#         # Save scraped cases to instance
+#         instance.case = [{"title": title, "link": link} for title, link in scraped_cases]
+#         instance.save()
 
 

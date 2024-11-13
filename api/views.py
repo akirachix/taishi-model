@@ -16,7 +16,17 @@ from django.conf import settings
 from case_brief.models import *
 import os
 from django.core.files.storage import default_storage
+import logging
 
+logger = logging.getLogger(__name__)
+logger.setLevel(logging.INFO)  # You can set to DEBUG for more detailed logs
+
+# Add a console handler to display logs in the console (optional: also log to a file)
+console_handler = logging.StreamHandler()
+console_handler.setLevel(logging.INFO)
+formatter = logging.Formatter('%(asctime)s - %(levelname)s - %(message)s')
+console_handler.setFormatter(formatter)
+logger.addHandler(console_handler)
 
 class TranscriptionViewSet(mixins.CreateModelMixin, mixins.ListModelMixin, mixins.RetrieveModelMixin, viewsets.GenericViewSet):
     """
@@ -134,11 +144,17 @@ class CaseMatchingListView(generics.ListCreateAPIView):
 
             extracted_details = extract_case_details(transcription_text)
             print(f'extracted_details: {extracted_details}')
-            print(f'type of extracted_details: {type(extracted_details)}')
+            print(f'type of extracted_details: {type(extracted_details)}')  ## ['Ruth Wanjiku Kamande', 'murder', 'family']
 
             search_term = ' '.join(extracted_details)
 
+            logger.info(f"search_term {search_term} @@@")
+
             case_laws = scrape_case_laws(search_term)
+
+            logger.info(f"case laws {case_laws} ***")
+
+
 
             # Create a new Case_matching instance
             case_matching = Case_matching.objects.create(
