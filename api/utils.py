@@ -311,6 +311,10 @@ def save_as_pdf(brief, filename, image_path=None):
     pdf.output(filename)
 
 
+
+
+
+
 def upload_file_to_s3(file, file_name):
     s3_client = boto3.client('s3', 
                              aws_access_key_id=settings.AWS_ACCESS_KEY_ID,

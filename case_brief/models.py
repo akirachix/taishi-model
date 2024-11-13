@@ -2,8 +2,6 @@ from django.db import models
 from transcription.models import Transcription
 from api.utils import extract_case_info_from_transcription, format_case_brief,save_as_pdf
 
-
-# Define the CaseBrief model
 class CaseBrief(models.Model):
     transcription = models.OneToOneField(Transcription, on_delete=models.CASCADE)
     generated_caseBrief = models.TextField(blank=True, null=True)
