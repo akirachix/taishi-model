@@ -291,6 +291,23 @@ class CaseBriefSegmentListCreateView(generics.CreateAPIView):
             return Response({"error": "Internal server error occurred."}, status=status.HTTP_500_INTERNAL_SERVER_ERROR)
         
 
+
+        
+
+
+class CaseBriefDetailView(generics.ListAPIView):
+    queryset = CaseBrief.objects.all()
+    serializer_class = CaseBriefSerializer
+    def get(self, request, id):
+        try:
+           case_brief = CaseBrief.objects.get(transcription_id=id)
+           serializer = CaseBriefSerializer(case_brief)
+           return Response(serializer.data, status=status.HTTP_200_OK)
+
+        except CaseBrief.DoesNotExist:
+            return Response({"error": "CaseBrief not found for this transcription"}, status=status.HTTP_404_NOT_FOUND)
+        
+
     def delete(self, request):
         """
         Delete a CaseBrief associated with a specific Transcription ID.
@@ -316,18 +333,4 @@ class CaseBriefSegmentListCreateView(generics.CreateAPIView):
             print(f"Unexpected error: {e}")
             print(traceback.format_exc())
             return Response({"error": "Internal server error occurred."}, status=status.HTTP_500_INTERNAL_SERVER_ERROR)
-        
-
-
-class CaseBriefDetailView(generics.ListAPIView):
-    queryset = CaseBrief.objects.all()
-    serializer_class = CaseBriefSerializer
-    def get(self, request, id):
-        try:
-           case_brief = CaseBrief.objects.get(transcription_id=id)
-           serializer = CaseBriefSerializer(case_brief)
-           return Response(serializer.data, status=status.HTTP_200_OK)
-
-        except CaseBrief.DoesNotExist:
-            return Response({"error": "CaseBrief not found for this transcription"}, status=status.HTTP_404_NOT_FOUND)
 
