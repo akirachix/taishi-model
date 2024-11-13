@@ -1,35 +1,60 @@
 name: Django CI
+
 on:
   push:
     branches: [ "main" ]
+
 jobs:
   release:
     runs-on: ubuntu-latest
+
     steps:
       - name: Checkout code
         uses: actions/checkout@v2
+
       - name: Set up Python environment
         uses: actions/setup-python@v2
         with:
-          python-version: 3.11
+          python-version: 3.11.10
+
+      - name: Install pip
+        run: python -m ensurepip --upgrade
+
+      - name: Cache dependencies
+        uses: actions/cache@v2
+        with:
+          path: ~/.cache/pip
+          key: ${{ runner.os }}-pip-${{ hashFiles('**/requirements.txt') }}
+          restore-keys: |
+            ${{ runner.os }}-pip-
+
       - name: Install dependencies
         run: |
+          pip install --upgrade pip
           pip install -r requirements.txt
-      - name: Set up Git remote for Heroku
+
+      - name: Install Heroku CLI
+        run: curl https://cli-assets.heroku.com/install.sh | sh
+
+      - name: Configure Git
         run: |
-          git remote -v
-          git remote add heroku https://git.heroku.com/themis-ai.git || echo "Heroku remote already exists"
+          git config --global user.email "ndichujoyce8@gmail.com"
+          git config --global user.name "Ndichu-shee"
+
+      - name: Heroku Login
+        env:
+          HEROKU_API_KEY: ${{ secrets.HEROKU_API_KEY }}
+        run: echo "$HEROKU_API_KEY" | heroku auth:token
+
       - name: Deploy to Heroku
         uses: akhileshns/heroku-deploy@v3.13.15
         with:
           heroku_api_key: ${{ secrets.HEROKU_API_KEY }}
-          heroku_app_name: "themis-ai"
+          heroku_app_name: "law-themisai"
           heroku_email: ${{ secrets.HEROKU_EMAIL }}
-        env:
-          HF_AUTH_TOKEN: ${{ secrets.HF_AUTH_TOKEN }}
-          AAI_KEY: ${{ secrets.AAI_KEY }}
-          OPENAI_API_KEY: ${{ secrets.OPENAI_API_KEY }}
- 
- 
- 
 
+      - name: Capture Heroku Logs on Failure
+        if: failure()
+        env:
+          HEROKU_API_KEY: ${{ secrets.HEROKU_API_KEY }}
+        run: heroku logs --app law-themisai --source app --dyno web.1

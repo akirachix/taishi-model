@@ -1,5 +1,3 @@
-import dj_database_url
-
 """
 Django settings for themis project.
 
@@ -18,6 +16,7 @@ from pathlib import Path
 BASE_DIR = Path(__file__).resolve().parent.parent
 
 import os
+from dotenv import load_dotenv, find_dotenv
 
 # Quick-start development settings - unsuitable for production
 # See https://docs.djangoproject.com/en/5.1/howto/deployment/checklist/
@@ -29,7 +28,6 @@ SECRET_KEY = "django-insecure-f_t-ws8*9h@%tkbs8(#-7@(3)x37r0yqvxyop1ge7)(pq$5kz-
 DEBUG = True
 
 ALLOWED_HOSTS = ['*']
-
 
 # Application definition
 
@@ -89,19 +87,20 @@ WSGI_APPLICATION = "themis.wsgi.application"
 # Database
 # https://docs.djangoproject.com/en/5.1/ref/settings/#databases
 
+
+import dj_database_url
+
 DATABASES = {
-    'default': dj_database_url.config(
-        default=os.getenv('DATABASE_URL')
-    )
-}
-# Fallback for local development and test environments
-if not os.getenv('DATABASE_URL'):
-    DATABASES = {
-        'default': {
-            'ENGINE': 'django.db.backends.sqlite3',
-            'NAME': BASE_DIR / 'db.sqlite3',
-        }
+    'default': {
+        'ENGINE': 'django.db.backends.postgresql',
+        'NAME': 'themis',  # Name of the database
+        'USER': 'themis_user',  # Username
+        'PASSWORD': 'new_password',  # Password you set
+        'HOST': 'localhost',  # Host where PostgreSQL is running
+        'PORT': '5432',  # Default port for PostgreSQL
     }
+}
+
 
 # Password validation
 # https://docs.djangoproject.com/en/5.1/ref/settings/#auth-password-validators
@@ -141,13 +140,25 @@ STATIC_URL = "static/"
 STATIC_ROOT = os.path.join(BASE_DIR, 'staticfiles')
 STATICFILES_STORAGE = "whitenoise.storage.CompressedManifestStaticFilesStorage"
 
+# AWS_ACCESS_KEY_ID = os.getenv('AWS_ACCESS_KEY_ID')
+# AWS_SECRET_ACCESS_KEY = os.getenv('AWS_SECRET_ACCESS_KEY')
+# AWS_STORAGE_BUCKET_NAME = os.getenv('AWS_STORAGE_BUCKET_NAME')
+# AWS_S3_REGION_NAME = os.getenv('AWS_S3_REGION_NAME')
+
+# DEFAULT_FILE_STORAGE = 'storages.backends.s3boto3.S3Boto3Storage'
+
+# # Optional: To serve static files through S3 as well
+# STATICFILES_STORAGE = 'storages.backends.s3boto3.S3StaticStorage'
+
+# MEDIA_URL = f'https://{AWS_STORAGE_BUCKET_NAME}.s3.{AWS_S3_REGION_NAME}.amazonaws.com/'
+
+# Media files setting
 # Default primary key field type
 # https://docs.djangoproject.com/en/5.1/ref/settings/#default-auto-field
 
 DEFAULT_AUTO_FIELD = "django.db.models.BigAutoField"
 
-import os
-from dotenv import load_dotenv, find_dotenv
+
 
 ENV_FILE = find_dotenv()
 if ENV_FILE:

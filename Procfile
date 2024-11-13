@@ -1,2 +1,1 @@
-web: gunicorn themis.wsgi --log-file -
-
+web: gunicorn themis.wsgi:application --log-file -

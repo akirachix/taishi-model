@@ -1,6 +1,9 @@
 import time
+import os
 from django.conf import settings
 import assemblyai as aai
+import boto3
+from botocore.exceptions import NoCredentialsError
 
 
 aai.settings.api_key = settings.AAI_KEY
@@ -45,7 +48,9 @@ def transcribe_audio_with_retry(audio_file_path, retries=5, delay=2):
 from pyannote.audio import Pipeline
 
 # Initialize the diarization pipeline (use your Hugging Face access token if needed)
-pipeline = Pipeline.from_pretrained("pyannote/speaker-diarization-3.1",  use_auth_token=settings.HF_AUTH_TOKEN)
+HF_AUTH_TOKEN = os.getenv('HF_AUTH_TOKEN', settings.HF_AUTH_TOKEN)
+pipeline = Pipeline.from_pretrained("pyannote/speaker-diarization-3.1", use_auth_token=HF_AUTH_TOKEN)
+
 
 def diarize_audio_with_retry(audio_file_path, retries=5, delay=2):
     """Performs diarization and transcription on the given audio file with retry logic using pyannote.audio and OpenAI."""
@@ -208,52 +213,31 @@ def extract_case_info_from_transcription(transcription_text):
 
 
 
-
 def format_case_brief(case_info):
-    formatted_brief = f"""
-    {case_info.get('case_title', '.......')}
+    # Format the header
+    header = f"""
+    REPUBLIC OF {case_info.get('country', '.......').upper()}
 
-    IN THE {case_info.get('court_type', '.......')} OF {case_info.get('country', '.......')}
+    IN THE HIGH COURT OF {case_info.get('court_location', '.......').upper()}
 
-    AT {case_info.get('court_location', '.......')}
+    CRIMINAL CASE NO. {case_info.get('case_number', '.......')}
 
-    {case_info.get('court_type', '.......')} CRIMINAL CASE NO. {case_info.get('case_number', '.......')}
-
-    {case_info.get('judge_name', '.......')}, J.
-
-    REPUBLIC.........................................PROSECUTION
+    REPUBLIC ......................................... PROSECUTOR
 
     VERSUS
 
-    {case_info.get('accused_name', '.......')}..................ACCUSED
+    {case_info.get('accused_name', '.......')} .......................... ACCUSED
 
-    RULING ON SENTENCING
-
-This court is presiding over the case of {case_info.get('case_title', '.......')}, Criminal Case No. {case_info.get('case_number', '.......')}. The prosecution is represented by {case_info.get('prosecutor_name', '.......')}, and the defense counsel is {case_info.get('defense_counsel_name', '.......')}. The accused, {case_info.get('accused_name', '.......')}, has been charged with {case_info.get('charges', '.......')}. The accused entered a plea of {case_info.get('plea', '.......')}, and after careful consideration of the evidence presented, this court has reached a verdict of {case_info.get('verdict', '.......')}
-
-    {case_info.get('filtered_transcript', '.......')}
-
-After thorough examination of the case, the court has identified the following mitigating factors:
-   {case_info.get('mitigating_factors', '.......')}
-
-The court has also taken into account the following aggravating factors:
-   {case_info.get('aggravating_factors', '.......')}
-
-In reaching this decision, the court considered the following legal principles:
-{case_info.get('legal_principles', '.......')}
-
-The court also took into account the following precedents:
-{case_info.get('precedents_cited', '.......')}
-
-Taking all factors into consideration, this court hereby sentences the accused as follows:
-    {case_info.get('sentence', '.......')}
-
-    DATED, SIGNED AND DELIVERED AT {case_info.get('court_location', '.......')} THIS {case_info.get('date', '.......')}.
-
-    {case_info.get('judge_name', '.......')} J
-    JUDGE
+    RULING
     """
-    return formatted_brief.strip()
+
+    # Format the content in paragraph form
+    content = f""" This court is presiding over the case of {case_info.get('case_title', '.......')}, Criminal Case No. {case_info.get('case_number', '.......')}. The prosecution is represented by {case_info.get('prosecutor_name', '.......')}, and the defense counsel is {case_info.get('defense_counsel_name', '.......')}. The accused, {case_info.get('accused_name', '.......')}, has been charged with the following: {case_info.get('charges', '.......')}  The accused entered a plea of {case_info.get('plea', '.......')}. After careful consideration of the evidence presented, this court has reached the following verdict: {case_info.get('verdict', '.......')}  {case_info.get('filtered_transcript', '.......')}  After thorough examination of the case, the court has identified the following mitigating factors: {case_info.get('mitigating_factors', '.......')}  The court has also taken into account the following aggravating factors: {case_info.get('aggravating_factors', '.......')}  In reaching this decision, the court considered the following legal principles: {case_info.get('legal_principles', '.......')}  The court also took into account the following precedents: {case_info.get('precedents_cited', '.......')}  Taking all factors into consideration, this court hereby sentences the accused as follows: {case_info.get('sentence', '.......')} """
+
+    # Format the footer
+    footer = f""" DATED, SIGNED AND DELIVERED AT {case_info.get('court_location', '.......')}  THIS {case_info.get('date', '.......')}  {case_info.get('judge_name', '.......')}  JUDGE """
+
+    return header.strip() + "\n\n" + content.strip() + "\n\n" + footer.strip()
 
 
 
@@ -326,5 +310,26 @@ def save_as_pdf(brief, filename, image_path=None):
 
     pdf.output(filename)
 
+
+def upload_file_to_s3(file, file_name):
+    s3_client = boto3.client('s3', 
+                             aws_access_key_id=settings.AWS_ACCESS_KEY_ID,
+                             aws_secret_access_key=settings.AWS_SECRET_ACCESS_KEY,
+                             region_name=settings.AWS_S3_REGION_NAME)
+
+    try:
+        # Log to verify file and file_name
+        print(f"Uploading file: {file_name}")
+        print(f"File type: {type(file)}")  # Should be <class 'django.core.files.uploadedfile.InMemoryUploadedFile'>
+
+        s3_client.upload_fileobj(file, settings.AWS_STORAGE_BUCKET_NAME, file_name)
+        file_url = f"https://{settings.AWS_STORAGE_BUCKET_NAME}.s3.{settings.AWS_S3_REGION_NAME}.amazonaws.com/{file_name}"
+
+        return file_url
+    except NoCredentialsError:
+        raise ValueError("Credentials not available")
+    except Exception as e:
+        print(f"Error uploading to S3: {e}")
+        raise
 
 

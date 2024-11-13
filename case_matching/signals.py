@@ -63,24 +63,6 @@ def extract_case_details(text: str) -> List[str]:
             if case_type not in extracted_details:
                 extracted_details.append(case_type)
 
-    # Sentence patterns
-    sentence_patterns = [
-        r'sentenced\s+to\s+(?:death|execution)[^.]*\.',
-        r'sentenced\s+to\s+\d+\s+(?:year|month|day)[s]?[^.]*\.',
-        r'sentenced\s+to\s+life[^.]*\.',
-        r'sentenced\s+to\s+(?:imprisonment|incarceration|jail|prison)[^.]*\.',
-        r'received\s+a\s+sentence\s+of[^.]*\.',
-        r'handed\s+(?:down|out)\s+a\s+sentence[^.]*\.'
-    ]
-
-    for pattern in sentence_patterns:
-        matches = re.finditer(pattern, text_lower)
-        for match in matches:
-            sentence = match.group()
-            if sentence not in extracted_details:
-                extracted_details.append(sentence)
-
-    return extracted_details
 
 
 
