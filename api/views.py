@@ -11,6 +11,7 @@ from rest_framework.exceptions import NotFound
 from case_matching.signals import scrape_case_laws, extract_case_details
 from django.db.models import Count
 from django.http import FileResponse, Http404
+from django.shortcuts import get_object_or_404
 from django.conf import settings
 from case_brief.models import *
 import os
@@ -281,6 +282,34 @@ class CaseBriefSegmentListCreateView(generics.CreateAPIView):
             # Serialize and return the created case brief
             serializer = CaseBriefSerializer(case_brief)
             return Response(serializer.data, status=status.HTTP_201_CREATED)
+
+        except Exception as e:
+            # Log the exception and full traceback
+            import traceback
+            print(f"Unexpected error: {e}")
+            print(traceback.format_exc())
+            return Response({"error": "Internal server error occurred."}, status=status.HTTP_500_INTERNAL_SERVER_ERROR)
+        
+
+    def delete(self, request, transcription_id=None):
+        """
+        Delete a CaseBrief associated with a specific Transcription ID.
+        """
+        try:
+            # Ensure transcription ID is provided
+            if not transcription_id:
+                return Response({"error": "Transcription ID is required"}, status=status.HTTP_400_BAD_REQUEST)
+
+            # Fetch the CaseBrief associated with the transcription ID
+            case_brief = get_object_or_404(CaseBrief, transcription_id=transcription_id)
+
+            # Delete the CaseBrief
+            case_brief.delete()
+
+            return Response(
+                {"message": f"CaseBrief associated with transcription ID {transcription_id} has been deleted."},
+                status=status.HTTP_204_NO_CONTENT,
+            )
 
         except Exception as e:
             # Log the exception and full traceback
