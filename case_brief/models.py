@@ -28,6 +28,7 @@ class CaseBrief(models.Model):
             
             # Format the extracted information into a case brief
             self.generated_caseBrief = format_case_brief(case_info)
+
             
             # Define the path to save the PDF file
             pdf_path = f'media/casebrief_pdf_files/case_brief_{self.id}.pdf'
@@ -39,6 +40,7 @@ class CaseBrief(models.Model):
             existing_case_brief = CaseBrief.objects.filter(transcription=self.transcription).first()
             if existing_case_brief:
                 existing_case_brief.pdf_file_path = pdf_path
+                existing_case_brief.generated_caseBrief = self.generated_caseBrief
                 existing_case_brief.save()
             else:
                 self.save()
