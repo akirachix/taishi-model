@@ -1,6 +1,4 @@
 from django.contrib import admin
-
-# Register your models here.
 from .models import CaseBrief
 
 class CaseBriefAdmin(admin.ModelAdmin):
@@ -13,4 +11,7 @@ class CaseBriefAdmin(admin.ModelAdmin):
         obj.generate_case_brief()
 
 admin.site.register(CaseBrief, CaseBriefAdmin)
+
+
+
 
