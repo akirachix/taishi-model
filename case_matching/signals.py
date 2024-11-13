@@ -11,6 +11,8 @@ from django.dispatch import receiver
 from case_matching.models import Case_matching
 from selenium.webdriver.chrome.options import Options
 from webdriver_manager.chrome import ChromeDriverManager
+from selenium.webdriver.chrome.service import Service
+
 
 # Set up logging
 logger = logging.getLogger(__name__)
@@ -111,7 +113,8 @@ def scrape_case_laws(search_term, limit=10):
     try:
         # Using the correct chromedriver path from webdriver_manager
         driver_path = ChromeDriverManager().install()
-        driver = webdriver.Chrome(executable_path=driver_path, options=chrome_options)
+        service = Service(driver_path)
+        driver = webdriver.Chrome(service=service, options=chrome_options)
     except Exception as e:
         logger.error(f"Failed to start WebDriver: {str(e)}")
         return []
