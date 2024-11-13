@@ -30,6 +30,6 @@ urlpatterns = [
 
     path('download_case_brief/transcription/<int:transcription_id>/', download_case_brief_pdf, name='download_case_brief_pdf'),
     path('case_briefs/',  CaseBriefSegmentListCreateView.as_view(), name='case_brief_list'),
-    path('case_brief/<int:pk>/', CaseBriefDetailView.as_view(), name='case_brief_detail'),
+    path('case_briefs/<int:id>/', CaseBriefDetailView.as_view(), name='case_brief_detail'),
 
 ]
