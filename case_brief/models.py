@@ -1,7 +1,14 @@
 from django.db import models
+
+# Create your models here.
+
 from transcription.models import Transcription
 from api.utils import extract_case_info_from_transcription, format_case_brief,save_as_pdf
+from django.urls import reverse
+import os
 
+
+# Define the CaseBrief model
 class CaseBrief(models.Model):
     transcription = models.OneToOneField(Transcription, on_delete=models.CASCADE)
     generated_caseBrief = models.TextField(blank=True, null=True)
@@ -27,7 +34,13 @@ class CaseBrief(models.Model):
             
             # Generate and save the PDF
             save_as_pdf(self.generated_caseBrief, pdf_path, image_path='images/themis_logo.png')
+
+
+            existing_case_brief = CaseBrief.objects.filter(transcription=self.transcription).first()
+            if existing_case_brief:
+                existing_case_brief.pdf_file_path = pdf_path
+                existing_case_brief.save()
+            else:
+                self.save()
             
-            # Update the PDF file path in the model
-            self.pdf_file_path = pdf_path
-            self.save()
+          
