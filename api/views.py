@@ -291,17 +291,17 @@ class CaseBriefSegmentListCreateView(generics.CreateAPIView):
             return Response({"error": "Internal server error occurred."}, status=status.HTTP_500_INTERNAL_SERVER_ERROR)
         
 
-    def delete(self, request, transcription_id=None):
+    def delete(self, request):
         """
         Delete a CaseBrief associated with a specific Transcription ID.
         """
         try:
-            # Ensure transcription ID is provided
+            transcription_id = request.data.get("transcription")
             if not transcription_id:
                 return Response({"error": "Transcription ID is required"}, status=status.HTTP_400_BAD_REQUEST)
 
             # Fetch the CaseBrief associated with the transcription ID
-            case_brief = get_object_or_404(CaseBrief, transcription_id=transcription_id)
+            case_brief = get_object_or_404(CaseBrief, id=transcription_id)
 
             # Delete the CaseBrief
             case_brief.delete()
@@ -312,7 +312,6 @@ class CaseBriefSegmentListCreateView(generics.CreateAPIView):
             )
 
         except Exception as e:
-            # Log the exception and full traceback
             import traceback
             print(f"Unexpected error: {e}")
             print(traceback.format_exc())
