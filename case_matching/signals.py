@@ -1,5 +1,6 @@
 import re
 import urllib.parse
+import logging
 from typing import List
 from selenium import webdriver
 from selenium.webdriver.common.by import By
@@ -9,8 +10,20 @@ from django.db.models.signals import post_save
 from django.dispatch import receiver
 from case_matching.models import Case_matching
 
+# Set up logging
+logger = logging.getLogger(__name__)
+logger.setLevel(logging.INFO)  # You can set to DEBUG for more detailed logs
+
+# Add a console handler to display logs in the console (optional: also log to a file)
+console_handler = logging.StreamHandler()
+console_handler.setLevel(logging.INFO)
+formatter = logging.Formatter('%(asctime)s - %(levelname)s - %(message)s')
+console_handler.setFormatter(formatter)
+logger.addHandler(console_handler)
+
 def extract_case_details(text: str) -> List[str]:
     if not text:
+        logger.warning("No text provided for case extraction.")
         return []
 
     extracted_details = []
@@ -23,12 +36,14 @@ def extract_case_details(text: str) -> List[str]:
         r'([A-Z][a-zA-Z\-]+(?:\s+[A-Z][a-zA-Z\-]+)+)\s+was\s+charged'
     ]
 
+    logger.info("Extracting defendants...")
     for pattern in defendant_patterns:
         matches = re.finditer(pattern, text)
         for match in matches:
             name = match.group(1)
             if name not in extracted_details:
                 extracted_details.append(name)
+                logger.debug(f"Found defendant: {name}")
 
     # Judge patterns
     judge_patterns = [
@@ -38,12 +53,14 @@ def extract_case_details(text: str) -> List[str]:
         r'[Pp]residing\s+[Jj]udge\s+([A-Z][a-zA-Z\-]+(?:\s+[A-Z][a-zA-Z\-]+)*)'
     ]
 
+    logger.info("Extracting judges...")
     for pattern in judge_patterns:
         matches = re.finditer(pattern, text)
         for match in matches:
             name = match.group(1)
             if name not in extracted_details:
                 extracted_details.append(name)
+                logger.debug(f"Found judge: {name}")
 
     # Case types
     case_types = {
@@ -57,13 +74,15 @@ def extract_case_details(text: str) -> List[str]:
         'traffic': r'\b(?:dui|dwi|driving|traffic)\b'
     }
 
+    logger.info("Extracting case types...")
     text_lower = text.lower()
     for case_type, pattern in case_types.items():
         if re.search(pattern, text_lower):
             if case_type not in extracted_details:
                 extracted_details.append(case_type)
+                logger.debug(f"Found case type: {case_type}")
 
-
+    return extracted_details
 
 
 # Scraping (Similar cases generation)
@@ -71,7 +90,7 @@ def extract_case_details(text: str) -> List[str]:
 def scrape_case_laws(search_term, limit=10):
     encoded_search_term = urllib.parse.quote(search_term)
     url = f"https://new.kenyalaw.org/search/?q={encoded_search_term}&court=High+Court&doc_type=Judgment"
-    print(f"Opening URL: {url}")
+    logger.info(f"Opening URL: {url}")
 
     chrome_options = Options()
     chrome_options.add_argument("--headless")  # Run Chrome in headless mode
@@ -82,21 +101,18 @@ def scrape_case_laws(search_term, limit=10):
     chrome_options.add_experimental_option("excludeSwitches", ["enable-automation"])
     chrome_options.add_experimental_option('useAutomationExtension', False)
 
-    # Optional: Set a specific Chrome binary path if it's not installed in the default location
-    # chrome_options.binary_location = "/path/to/your/chrome"
-
     driver = webdriver.Chrome(options=chrome_options)
 
     case_laws = []
     try:
         driver.get(url)
-        print("Page loaded successfully")
+        logger.info("Page loaded successfully")
 
         # Waiting time
         time.sleep(10)
 
-        print(f"Page Title: {driver.title}")
-        print(f"Current URL: {driver.current_url}")
+        logger.debug(f"Page Title: {driver.title}")
+        logger.debug(f"Current URL: {driver.current_url}")
 
         # Selectors to try
         selectors_to_try = [
@@ -107,14 +123,14 @@ def scrape_case_laws(search_term, limit=10):
         ]
 
         for selector_type, selector, desc in selectors_to_try:
-            print(f"Trying to find elements with {desc} ({selector})")
+            logger.info(f"Trying to find elements with {desc} ({selector})")
             try:
                 if selector_type == "CSS":
                     elements = driver.find_elements(By.CSS_SELECTOR, selector)
                 else:
                     elements = driver.find_elements(By.XPATH, selector)
 
-                print(f"Found {len(elements)} elements with {desc}")
+                logger.debug(f"Found {len(elements)} elements with {desc}")
 
                 if elements:
                     for element in elements[:limit]:
@@ -131,20 +147,21 @@ def scrape_case_laws(search_term, limit=10):
 
                             if title and link:
                                 case_laws.append((title, link))
-                                print(f"Added case: {title[:50]}...")
+                                logger.info(f"Added case: {title[:50]}...")
+
                         except Exception as e:
-                            print(f"Error extracting case info: {str(e)}")
+                            logger.error(f"Error extracting case info: {str(e)}")
 
                     if case_laws:
                         break
             except Exception as e:
-                print(f"Error with selector {desc}: {str(e)}")
+                logger.error(f"Error with selector {desc}: {str(e)}")
 
         if not case_laws:
-            print("Trying fallback method...")
+            logger.info("Trying fallback method...")
             try:
                 list_items = driver.find_elements(By.CSS_SELECTOR, "ul.list-unstyled li")
-                print(f"Found {len(list_items)} list items")
+                logger.debug(f"Found {len(list_items)} list items")
                 for item in list_items[:limit]:
                     try:
                         link_element = item.find_element(By.CSS_SELECTOR, "a.h5.text-primary")
@@ -152,21 +169,21 @@ def scrape_case_laws(search_term, limit=10):
                         link = link_element.get_attribute('href')
                         if title and link:
                             case_laws.append((title, link))
-                            print(f"Added case from fallback: {title[:50]}...")
+                            logger.info(f"Added case from fallback: {title[:50]}...")
                     except Exception as e:
-                        print(f"Error in fallback extraction: {str(e)}")
+                        logger.error(f"Error in fallback extraction: {str(e)}")
             except Exception as e:
-                print(f"Fallback method failed: {str(e)}")
+                logger.error(f"Fallback method failed: {str(e)}")
 
         if not case_laws:
-            print("No results found. Saving page source...")
+            logger.warning("No results found. Saving page source...")
             with open("page_source.html", "w", encoding="utf-8") as f:
                 f.write(driver.page_source)
 
         return case_laws
 
     except Exception as e:
-        print(f"An error occurred: {str(e)}")
+        logger.error(f"An error occurred: {str(e)}")
         driver.save_screenshot("error_screenshot.png")
         return []
 
