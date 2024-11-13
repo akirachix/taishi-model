@@ -1,11 +1,6 @@
 from django.db import models
-
-# Create your models here.
-
 from transcription.models import Transcription
 from api.utils import extract_case_info_from_transcription, format_case_brief,save_as_pdf
-from django.urls import reverse
-import os
 
 
 # Define the CaseBrief model

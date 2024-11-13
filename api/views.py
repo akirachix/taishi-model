@@ -14,7 +14,6 @@ from django.http import FileResponse, Http404
 from django.conf import settings
 from case_brief.models import *
 import os
-import boto3
 from django.core.files.storage import default_storage
 
 
@@ -211,22 +210,6 @@ class AudioChunkViewSet(viewsets.ModelViewSet):
 
 
 
-from django.shortcuts import render, get_object_or_404, redirect
-from transcription.models import Transcription
-
-
-def generate_case_brief_view(request, transcription_id):
-    transcription = get_object_or_404(Transcription, id=transcription_id)
-
-    # Generate PDF file for the case brief
-    pdf_filename = f"case_brief_{transcription.case_number}.pdf"
-    image_path = "/home/student/Downloads/themis_logo.png"  
-
-    # Redirect or render a success message (based on your requirement)
-    return redirect('case_brief_success')
-
-
-
 def download_case_brief_pdf(request, transcription_id):
     try:
         # Retrieve the CaseBrief object using transcription_id
@@ -248,28 +231,75 @@ def download_case_brief_pdf(request, transcription_id):
 
 
 
-class CaseBriefSegmentListCreateView(generics.ListCreateAPIView):
-    """
-    Handles the creation and listing of casebriefs.
-    """
+class CaseBriefSegmentListCreateView(generics.CreateAPIView):
     queryset = CaseBrief.objects.all()
     serializer_class = CaseBriefSerializer
 
+    def get(self, request):
+        """
+        Retrieve a list of all CaseBrief objects.
+        """
+        try:
+            # Fetch all CaseBrief objects
+            case_briefs = CaseBrief.objects.all()
+
+            # Serialize the queryset
+            serializer = CaseBriefSerializer(case_briefs, many=True)
+
+            # Return serialized data
+            return Response(serializer.data, status=status.HTTP_200_OK)
+
+        except Exception as e:
+            # Log and handle unexpected errors
+            import traceback
+            print(f"Unexpected error: {e}")
+            print(traceback.format_exc())
+            return Response({"error": "Internal server error occurred."}, status=status.HTTP_500_INTERNAL_SERVER_ERROR)
+
+  
+
+    def post(self, request):
+        try:
+            # Log incoming request
+            print(f"Incoming Request Data: {request.data}")
+
+            # Extract transcription ID from the request
+            transcription_id = request.data.get("transcription")
+            if not transcription_id:
+                return Response({"error": "Transcription ID is required"}, status=status.HTTP_400_BAD_REQUEST)
+
+            # Fetch the transcription object
+            try:
+                transcription = Transcription.objects.get(id=transcription_id)
+            except Transcription.DoesNotExist:
+                return Response({"error": "Transcription not found"}, status=status.HTTP_404_NOT_FOUND)
+
+            # Create and generate the case brief
+            case_brief = CaseBrief(transcription=transcription)
+            case_brief.generate_case_brief()
+
+            # Serialize and return the created case brief
+            serializer = CaseBriefSerializer(case_brief)
+            return Response(serializer.data, status=status.HTTP_201_CREATED)
+
+        except Exception as e:
+            # Log the exception and full traceback
+            import traceback
+            print(f"Unexpected error: {e}")
+            print(traceback.format_exc())
+            return Response({"error": "Internal server error occurred."}, status=status.HTTP_500_INTERNAL_SERVER_ERROR)
+        
+
 
 class CaseBriefDetailView(generics.ListAPIView):
-    """
-    Retrieve case briefs for a specific transcription.
-    """
+    queryset = CaseBrief.objects.all()
     serializer_class = CaseBriefSerializer
+    def get(self, request, id):
+        try:
+           case_brief = CaseBrief.objects.get(transcription_id=id)
+           serializer = CaseBriefSerializer(case_brief)
+           return Response(serializer.data, status=status.HTTP_200_OK)
 
-    def get_queryset(self):
-        transcription_id = self.kwargs['pk']
-        return CaseBrief.objects.filter(transcription_id=transcription_id)
+        except CaseBrief.DoesNotExist:
+            return Response({"error": "CaseBrief not found for this transcription"}, status=status.HTTP_404_NOT_FOUND)
 
-    def list(self, request, *args, **kwargs):
-        queryset = self.get_queryset()
-        if queryset.exists():
-            serializer = self.get_serializer(queryset, many=True)
-            return Response(serializer.data, status=status.HTTP_200_OK)
-        else:
-            return Response({"error": "No case briefs found for this transcription"}, status=status.HTTP_404_NOT_FOUND)
