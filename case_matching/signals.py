@@ -74,17 +74,20 @@ def scrape_case_laws(search_term, limit=10):
     print(f"Opening URL: {url}")
 
     chrome_options = Options()
-    chrome_options.add_argument("--headless")
-    chrome_options.add_argument("--no-sandbox")
-    chrome_options.add_argument("--disable-dev-shm-usage")
-    chrome_options.add_argument("--window-size=1920,1080")
-    chrome_options.add_argument("--disable-blink-features=AutomationControlled")
+    chrome_options.add_argument("--headless")  # Run Chrome in headless mode
+    chrome_options.add_argument("--no-sandbox")  # Disable sandboxing for non-root users
+    chrome_options.add_argument("--disable-dev-shm-usage")  # Overcome limited resource problems
+    chrome_options.add_argument("--window-size=1920,1080")  # Set window size
+    chrome_options.add_argument("--disable-blink-features=AutomationControlled")  # Disable automation-controlled flag
     chrome_options.add_experimental_option("excludeSwitches", ["enable-automation"])
     chrome_options.add_experimental_option('useAutomationExtension', False)
 
-    driver = webdriver.Chrome(options=chrome_options)
-    case_laws = []
+    # Optional: Set a specific Chrome binary path if it's not installed in the default location
+    # chrome_options.binary_location = "/path/to/your/chrome"
 
+    driver = webdriver.Chrome(options=chrome_options)
+
+    case_laws = []
     try:
         driver.get(url)
         print("Page loaded successfully")
@@ -95,7 +98,7 @@ def scrape_case_laws(search_term, limit=10):
         print(f"Page Title: {driver.title}")
         print(f"Current URL: {driver.current_url}")
 
-        # Multiple selectors based on the actual HTML structure
+        # Selectors to try
         selectors_to_try = [
             ("CSS", "li.mb-4.hit", "Result items"),
             ("CSS", "a.h5.text-primary", "Primary links"),
@@ -137,7 +140,6 @@ def scrape_case_laws(search_term, limit=10):
             except Exception as e:
                 print(f"Error with selector {desc}: {str(e)}")
 
-
         if not case_laws:
             print("Trying fallback method...")
             try:
@@ -170,6 +172,7 @@ def scrape_case_laws(search_term, limit=10):
 
     finally:
         driver.quit()
+
         
 
 @receiver(post_save, sender=Case_matching)
