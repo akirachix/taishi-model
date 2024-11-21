@@ -284,6 +284,7 @@ def format_case_brief(case_info):
 
 
 def save_as_pdf(brief, filename, image_path=None):
+    logger.info(f"^^^^^^^^^^^^^^{brief}*****:::::::@@@@@@:{filename}:$$$$$$$$:::::{image_path}@@@@@@@@@@@@")
     start_time = time.time()  # Track start time
     
     pdf = FPDF()
