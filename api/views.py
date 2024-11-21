@@ -17,12 +17,6 @@ from case_brief.models import *
 import os
 from django.core.files.storage import default_storage
 import logging
-from pydub import AudioSegment
-import requests
-import traceback
-import subprocess
-
-
 
 logger = logging.getLogger(__name__)
 logger.setLevel(logging.INFO)  # You can set to DEBUG for more detailed logs
@@ -42,7 +36,6 @@ class TranscriptionViewSet(mixins.CreateModelMixin, mixins.ListModelMixin, mixin
     serializer_class = TranscriptionSerializer
     parser_classes = [MultiPartParser, FormParser]
 
-
     def create(self, request, *args, **kwargs):
         """
         Handle audio file upload and trigger transcription.
@@ -50,64 +43,13 @@ class TranscriptionViewSet(mixins.CreateModelMixin, mixins.ListModelMixin, mixin
         serializer = self.get_serializer(data=request.data)
         if serializer.is_valid():
             transcription = serializer.save()
-
-            # Access the uploaded file's path
-            audio_file_path = transcription.audio_file.path
-            logger.info(f"Attempting to load audio file from: {audio_file_path}")
-
-            # Check if the file exists
-            if not os.path.exists(audio_file_path):
-                logger.error(f"Audio file does not exist at: {audio_file_path}")
-                return Response({
-                    'message': 'Audio file not found.',
-                }, status=status.HTTP_404_NOT_FOUND)
-
-            # Log file size for further debugging
-            file_size = os.path.getsize(audio_file_path)
-            logger.info(f"Audio file size: {file_size} bytes")
-
-            # Log file content type
-            file_content_type = request.FILES['audio_file'].content_type
-            logger.info(f"File content type: {file_content_type}")
-
-            # Set output file path (modify as needed)
-            output_file_path = "/home/ec2-user/taishi-model/audio_files/file.wav"  # Adjust this path
-
-            try:
-                # Run ffmpeg command with both input and output files
-                command = ["ffmpeg", "-v", "error", "-i", audio_file_path, output_file_path]
-                result = subprocess.run(command, capture_output=True, text=True)
-                
-                # Check for FFmpeg errors
-                if result.returncode != 0:
-                    logger.error(f"FFmpeg error: {result.stderr}")
-                    return Response({
-                        'message': 'Error processing audio file with FFmpeg.',
-                        'error': result.stderr,
-                    }, status=status.HTTP_500_INTERNAL_SERVER_ERROR)
-
-                logger.info(f"FFmpeg output: {result.stdout}")
-                
-                # Attempt to load the audio file using AudioSegment
-                audio = AudioSegment.from_file(audio_file_path)
-                logger.info(f"Audio file loaded successfully: {audio_file_path}")
-            except Exception as e:
-                logger.error(f"Error loading audio file {audio_file_path}: {str(e)}")
-                return Response({
-                    'message': 'Error processing audio file.',
-                    'error': str(e),
-                }, status=status.HTTP_500_INTERNAL_SERVER_ERROR)
-
-            # Return the response after processing
             return Response({
                 'id': transcription.id,
                 'message': 'Transcription processed successfully.',
                 'status': transcription.status,
                 'transcription_text': transcription.transcription_text,
             }, status=status.HTTP_201_CREATED)
-
         return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
-
 
     @action(detail=True, methods=['get'])
     def get_transcription(self, request, pk=None):
