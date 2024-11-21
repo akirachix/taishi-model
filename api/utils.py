@@ -16,6 +16,7 @@ formatter = logging.Formatter('%(asctime)s - %(levelname)s - %(message)s')
 console_handler.setFormatter(formatter)
 logger.addHandler(console_handler)
 from dotenv import load_dotenv
+from pyannote.audio import Pipeline
 
 # Load environment variables from the .env file located at the root of the project
 load_dotenv()
@@ -59,7 +60,6 @@ def transcribe_audio_with_retry(audio_file_path, retries=5, delay=2):
 
 
 
-from pyannote.audio import Pipeline
 
 # Initialize the diarization pipeline (use your Hugging Face access token if needed)
 HF_AUTH_TOKEN = os.getenv('HF_AUTH_TOKEN')
@@ -69,36 +69,59 @@ pipeline = Pipeline.from_pretrained("pyannote/speaker-diarization-3.1", use_auth
 def diarize_audio_with_retry(audio_file_path, retries=5, delay=2):
     """Performs diarization and transcription on the given audio file with retry logic using pyannote.audio and OpenAI."""
     
+    # Check if the audio file exists
+    if not os.path.exists(audio_file_path):
+        logger.error(f"Audio file {audio_file_path} does not exist.")
+        return None
+
     for attempt in range(retries):
         try:
-            print(f"Starting diarization for file: {audio_file_path} (Attempt {attempt+1})")
+            logger.info(f"Starting diarization for file: {audio_file_path} (Attempt {attempt+1})")
             
-            diarization_result = pipeline(audio_file_path)
+            # Try to perform diarization with the pipeline
+            try:
+                diarization_result = pipeline(audio_file_path)
+                logger.info(f"Diarization completed for file: {audio_file_path}")
+            except Exception as e:
+                logger.error(f"Error during diarization of file {audio_file_path}: {e}")
+                raise ValueError(f"Failed to perform diarization: {e}")
             
-            with open(audio_file_path, 'rb') as audio_file:
-                transcription_response = openai.Audio.transcribe(
-                    model="whisper-1",
-                    file=audio_file,
-                    language="en"
-                )
-                transcription_text = transcription_response.get('text', '')
-
-            if not transcription_text:
-                raise ValueError(f"No transcription found for {audio_file_path}")
+            # Attempt to transcribe the audio file
+            try:
+                with open(audio_file_path, 'rb') as audio_file:
+                    transcription_response = openai.Audio.transcribe(
+                        model="whisper-1",
+                        file=audio_file,
+                        language="en"
+                    )
+                    transcription_text = transcription_response.get('text', '')
+                
+                if not transcription_text:
+                    raise ValueError(f"No transcription found for {audio_file_path}")
+                logger.info(f"Transcription completed for file: {audio_file_path}")
             
-            print(f"Transcription and diarization completed for file: {audio_file_path}")
+            except Exception as e:
+                logger.error(f"Error during transcription of file {audio_file_path}: {e}")
+                raise ValueError(f"Failed to transcribe: {e}")
 
-            speaker_texts = align_diarization_with_transcription(diarization_result, transcription_text)
-
-            return speaker_texts 
-
+            # Align diarization results with transcription text
+            try:
+                speaker_texts = align_diarization_with_transcription(diarization_result, transcription_text)
+                logger.info(f"Transcription and diarization aligned for file: {audio_file_path}")
+                return speaker_texts
+            except Exception as e:
+                logger.error(f"Error during alignment of diarization with transcription for {audio_file_path}: {e}")
+                raise ValueError(f"Failed to align diarization with transcription: {e}")
+            
         except Exception as e:
-            print(f"Error during diarization or transcription of file {audio_file_path}: {e}")
+            # Log the error and retry after the specified delay
+            logger.error(f"Error processing {audio_file_path}: {e}")
             if attempt < retries - 1:
-                print(f"Retrying in {delay ** attempt} seconds.")
-                time.sleep(delay ** attempt)
+                wait_time = delay ** attempt
+                logger.info(f"Retrying in {wait_time} seconds...")
+                time.sleep(wait_time)
             else:
-                print(f"All attempts failed for diarization of file: {audio_file_path}")
+                logger.error(f"All attempts failed for diarization of file: {audio_file_path}")
                 return None
 
 
