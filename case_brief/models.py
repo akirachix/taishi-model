@@ -24,17 +24,17 @@ class CaseBrief(models.Model):
         # Ensure the transcription is available and has the necessary text
         if self.transcription and self.transcription.transcription_text:
             # Extract case information
-            case_info = extract_case_info_from_transcription(transcription.transcription_text)
+            case_info = extract_case_info_from_transcription(self.transcription.transcription_text)
             
             # Format the extracted information into a case brief
             self.generated_caseBrief = format_case_brief(case_info)
 
             
             # Define the path to save the PDF file
-            pdf_path = f'media/casebrief_pdf_files/case_brief_48.pdf'
+            pdf_path = f'media/casebrief_pdf_files/case_brief_{self.id}.pdf'
             
             # Generate and save the PDF
-            save_as_pdf(generated_caseBrief, pdf_path, image_path='images/themis_logo.png')
+            save_as_pdf(self.generated_caseBrief, pdf_path, image_path='images/themis_logo.png')
 
 
             existing_case_brief = CaseBrief.objects.filter(transcription=self.transcription).first()
