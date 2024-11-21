@@ -19,6 +19,7 @@ from django.core.files.storage import default_storage
 import logging
 from pydub import AudioSegment
 import requests
+import traceback
 
 
 logger = logging.getLogger(__name__)
@@ -81,6 +82,7 @@ class TranscriptionViewSet(mixins.CreateModelMixin, mixins.ListModelMixin, mixin
                 logger.info(f"Audio file loaded successfully: {audio_file_path}")
             except Exception as e:
                 logger.error(f"Error loading audio file {audio_file_path}: {str(e)}")
+                logger.error("Full traceback: %s", traceback.format_exc())
                 return Response({
                     'message': 'Error processing audio file.',
                     'error': str(e),
@@ -103,7 +105,6 @@ class TranscriptionViewSet(mixins.CreateModelMixin, mixins.ListModelMixin, mixin
 
         # If serializer is not valid, return the errors
         return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
-
 
 
     @action(detail=True, methods=['get'])
