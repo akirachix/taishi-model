@@ -18,6 +18,7 @@ import os
 from django.core.files.storage import default_storage
 import logging
 from pydub import AudioSegment
+import requests
 
 
 logger = logging.getLogger(__name__)
@@ -44,6 +45,7 @@ class TranscriptionViewSet(mixins.CreateModelMixin, mixins.ListModelMixin, mixin
         Handle audio file upload and trigger transcription.
         """
         serializer = self.get_serializer(data=request.data)
+        
         if serializer.is_valid():
             transcription = serializer.save()
 
@@ -62,6 +64,17 @@ class TranscriptionViewSet(mixins.CreateModelMixin, mixins.ListModelMixin, mixin
             file_size = os.path.getsize(audio_file_path)
             logger.info(f"Audio file size: {file_size} bytes")
 
+            # Log file content type
+            file_content_type = request.FILES['audio_file'].content_type
+            logger.info(f"File content type: {file_content_type}")
+
+            # Check if the file content type is valid
+            if file_content_type not in ['audio/mpeg', 'audio/wav', 'audio/x-wav']:
+                logger.error(f"Invalid audio file type: {file_content_type}")
+                return Response({
+                    'message': 'Invalid audio file type.',
+                }, status=status.HTTP_400_BAD_REQUEST)
+
             # Attempt to load the audio file using AudioSegment
             try:
                 audio = AudioSegment.from_file(audio_file_path)
@@ -73,7 +86,14 @@ class TranscriptionViewSet(mixins.CreateModelMixin, mixins.ListModelMixin, mixin
                     'error': str(e),
                 }, status=status.HTTP_500_INTERNAL_SERVER_ERROR)
 
-            # Return the response after processing
+            # Optionally check the audio format or metadata
+            if not audio:
+                logger.error(f"Failed to load audio data from file: {audio_file_path}")
+                return Response({
+                    'message': 'Failed to load audio data.',
+                }, status=status.HTTP_500_INTERNAL_SERVER_ERROR)
+
+            # If the file is successfully loaded, return the transcription response
             return Response({
                 'id': transcription.id,
                 'message': 'Transcription processed successfully.',
@@ -81,7 +101,9 @@ class TranscriptionViewSet(mixins.CreateModelMixin, mixins.ListModelMixin, mixin
                 'transcription_text': transcription.transcription_text,
             }, status=status.HTTP_201_CREATED)
 
+        # If serializer is not valid, return the errors
         return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
+
 
 
     @action(detail=True, methods=['get'])
