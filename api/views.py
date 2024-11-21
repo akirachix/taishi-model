@@ -71,7 +71,7 @@ class TranscriptionViewSet(mixins.CreateModelMixin, mixins.ListModelMixin, mixin
             logger.info(f"File content type: {file_content_type}")
 
             # Set output file path (modify as needed)
-            output_file_path = "/path/to/output/file.wav"  # Adjust this path
+            output_file_path = "/home/ec2-user/taishi-model/audio_files/file.wav"  # Adjust this path
 
             try:
                 # Run ffmpeg command with both input and output files
