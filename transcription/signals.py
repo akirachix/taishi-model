@@ -1,6 +1,7 @@
 import os
 import logging
 from pydub import AudioSegment
+from pydub.utils import which
 from django.db.models.signals import post_save
 from django.dispatch import receiver
 from transcription.models import Transcription
@@ -17,10 +18,17 @@ formatter = logging.Formatter('%(asctime)s - %(levelname)s - %(message)s')
 console_handler.setFormatter(formatter)
 logger.addHandler(console_handler)
 
-# Set the path explicitly for pydub
+# Set FFmpeg and FFprobe locations
 os.environ["PATH"] += ":/usr/local/bin"
 AudioSegment.ffmpeg = "/usr/local/bin/ffmpeg"
 AudioSegment.ffprobe = "/usr/local/bin/ffprobe"
+os.environ["FFMPEG_BINARY"] = "/usr/local/bin/ffmpeg"
+
+# Check if ffmpeg is available
+if not which("ffmpeg"):
+    logger.error("FFmpeg not found in system path!")
+else:
+    logger.debug("FFmpeg is available.")
 
 @receiver(post_save, sender=Transcription)
 def auto_chunk_audio(sender, instance, created, **kwargs):
