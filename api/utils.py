@@ -4,7 +4,17 @@ from django.conf import settings
 import assemblyai as aai
 import boto3
 from botocore.exceptions import NoCredentialsError
+import logging
 
+logger = logging.getLogger(__name__)
+logger.setLevel(logging.INFO)  # You can set to DEBUG for more detailed logs
+
+# Add a console handler to display logs in the console (optional: also log to a file)
+console_handler = logging.StreamHandler()
+console_handler.setLevel(logging.INFO)
+formatter = logging.Formatter('%(asctime)s - %(levelname)s - %(message)s')
+console_handler.setFormatter(formatter)
+logger.addHandler(console_handler)
 
 aai.settings.api_key = settings.AAI_KEY
 
@@ -154,6 +164,7 @@ import re
 
 
 def extract_case_info_from_transcription(transcription_text):
+    logger.info(f"transcription_text:: {transcription_text}")
     prompt = """
     From this court hearing transcription provided, extract the following information:
     "case_title, case_number, judge_name, accused_name, filtered_transcript, court_type, country, court_location, date, prosecutor_name, defense_counsel_name, charges, plea, verdict, sentence, mitigating_factors, aggravating_factors, legal_principles, precedents_cited"
@@ -201,12 +212,13 @@ def extract_case_info_from_transcription(transcription_text):
         final_model=aai.LemurModel.claude3_5_sonnet, 
         input_text=transcription_text,
          max_output_size=4000)
+    logger.info(f"result:::::{result}******")
 
     try:
         return json.loads(result.response)
     except json.JSONDecodeError:
-        print("Error: The response is not a valid JSON. Raw response:")
-        print(result.response)
+        logger.error("Error: The response is not a valid JSON. Raw response:")
+        logger.info(f"@@@{result.response}@@@")
         return {}
     
 
@@ -214,6 +226,8 @@ def extract_case_info_from_transcription(transcription_text):
 
 
 def format_case_brief(case_info):
+
+    logger.info(f"!!!!!!!!!{case_info}!!!!!!!")
     # Format the header
     header = f"""
     REPUBLIC OF {case_info.get('country', '.......').upper()}

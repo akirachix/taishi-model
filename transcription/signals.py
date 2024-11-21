@@ -75,9 +75,9 @@ def auto_chunk_audio(sender, instance, created, **kwargs):
 
             # Update transcription status
             instance.is_chunked = True
-            instance.status = 'in_progress'
+            instance.status = 'completed'
             instance.save(update_fields=['is_chunked', 'status'])
-            logger.debug(f"Updated transcription {instance.id} status to 'in_progress'")
+            logger.debug(f"Updated transcription {instance.id} status to 'completed'")
 
         except FileNotFoundError as e:
             instance.status = 'failed'
