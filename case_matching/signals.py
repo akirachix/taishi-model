@@ -99,11 +99,8 @@ def extract_case_details(text: str) -> List[str]:
 
 # Scraping (Similar cases generation)
 
+
 def scrape_case_laws(search_term, limit=10):
-    """
-    Scrape case laws based on a search term from the Kenya Law website.
-    Automatically uses the correct ChromeDriver version based on the installed version of Chrome.
-    """
     encoded_search_term = urllib.parse.quote(search_term)
     url = f"https://new.kenyalaw.org/search/?q={encoded_search_term}&court=High+Court&doc_type=Judgment"
     logger.info(f"Opening URL: {url}")
@@ -112,6 +109,7 @@ def scrape_case_laws(search_term, limit=10):
     chrome_options.add_argument("--headless")  # Run Chrome in headless mode
     chrome_options.add_argument("--no-sandbox")  # Disable sandboxing for non-root users
     chrome_options.add_argument("--disable-dev-shm-usage")  # Overcome limited resource problems
+    chrome_options.add_argument("--disable-gpu")  # Disable GPU hardware acceleration
     chrome_options.add_argument("--window-size=1920,1080")  # Set window size
     chrome_options.add_argument("--disable-blink-features=AutomationControlled")  # Disable automation-controlled flag
     chrome_options.add_experimental_option("excludeSwitches", ["enable-automation"])
@@ -119,14 +117,14 @@ def scrape_case_laws(search_term, limit=10):
 
     # Automatically download and use the correct chromedriver version
     try:
-        # Using the correct chromedriver path from webdriver_manager
+        # Use the correct chromedriver path via ChromeDriverManager
         driver_path = ChromeDriverManager().install()
         service = Service(driver_path)
         driver = webdriver.Chrome(service=service, options=chrome_options)
     except Exception as e:
         logger.error(f"Failed to start WebDriver: {str(e)}")
         return []
-
+    
     case_laws = []
     try:
         driver.get(url)
