@@ -46,14 +46,13 @@ class TranscriptionViewSet(mixins.CreateModelMixin, mixins.ListModelMixin, mixin
         Handle audio file upload and trigger transcription.
         """
         serializer = self.get_serializer(data=request.data)
-        
         if serializer.is_valid():
             transcription = serializer.save()
 
             # Access the uploaded file's path
             audio_file_path = transcription.audio_file.path
             logger.info(f"Attempting to load audio file from: {audio_file_path}")
-            
+
             # Check if the file exists
             if not os.path.exists(audio_file_path):
                 logger.error(f"Audio file does not exist at: {audio_file_path}")
@@ -69,33 +68,30 @@ class TranscriptionViewSet(mixins.CreateModelMixin, mixins.ListModelMixin, mixin
             file_content_type = request.FILES['audio_file'].content_type
             logger.info(f"File content type: {file_content_type}")
 
-            # Check if the file content type is valid
-            if file_content_type not in ['audio/mpeg', 'audio/wav', 'audio/x-wav']:
-                logger.error(f"Invalid audio file type: {file_content_type}")
-                return Response({
-                    'message': 'Invalid audio file type.',
-                }, status=status.HTTP_400_BAD_REQUEST)
-
-            # Attempt to load the audio file using AudioSegment
+            # Run ffmpeg manually and log output
             try:
+                command = ["ffmpeg", "-v", "error", "-i", audio_file_path]
+                result = subprocess.run(command, capture_output=True, text=True)
+                if result.returncode != 0:
+                    logger.error(f"FFmpeg error: {result.stderr}")
+                    return Response({
+                        'message': 'Error processing audio file with FFmpeg.',
+                        'error': result.stderr,
+                    }, status=status.HTTP_500_INTERNAL_SERVER_ERROR)
+                
+                logger.info(f"FFmpeg output: {result.stdout}")
+                
+                # Attempt to load the audio file using AudioSegment
                 audio = AudioSegment.from_file(audio_file_path)
                 logger.info(f"Audio file loaded successfully: {audio_file_path}")
             except Exception as e:
                 logger.error(f"Error loading audio file {audio_file_path}: {str(e)}")
-                logger.error("Full traceback: %s", traceback.format_exc())
                 return Response({
                     'message': 'Error processing audio file.',
                     'error': str(e),
                 }, status=status.HTTP_500_INTERNAL_SERVER_ERROR)
 
-            # Optionally check the audio format or metadata
-            if not audio:
-                logger.error(f"Failed to load audio data from file: {audio_file_path}")
-                return Response({
-                    'message': 'Failed to load audio data.',
-                }, status=status.HTTP_500_INTERNAL_SERVER_ERROR)
-
-            # If the file is successfully loaded, return the transcription response
+            # Return the response after processing
             return Response({
                 'id': transcription.id,
                 'message': 'Transcription processed successfully.',
@@ -103,7 +99,6 @@ class TranscriptionViewSet(mixins.CreateModelMixin, mixins.ListModelMixin, mixin
                 'transcription_text': transcription.transcription_text,
             }, status=status.HTTP_201_CREATED)
 
-        # If serializer is not valid, return the errors
         return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
 
 
