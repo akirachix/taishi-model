@@ -11,29 +11,17 @@ import subprocess
 # Set up logging
 logger = logging.getLogger(__name__)
 logger.setLevel(logging.DEBUG)
-
-console_handler = logging.StreamHandler()  # For logging to console
+console_handler = logging.StreamHandler()
 console_handler.setLevel(logging.DEBUG)
 formatter = logging.Formatter('%(asctime)s - %(levelname)s - %(message)s')
 console_handler.setFormatter(formatter)
 logger.addHandler(console_handler)
 
-# Set FFmpeg and FFprobe locations
-os.environ["PATH"] += ":/usr/local/bin"
-AudioSegment.ffmpeg = "/usr/local/bin/ffmpeg"
-AudioSegment.ffprobe = "/usr/local/bin/ffprobe"
-os.environ["FFMPEG_BINARY"] = "/usr/local/bin/ffmpeg"
-
-# Check if ffmpeg and ffprobe are available
+# Check if ffmpeg is available
 if not which("ffmpeg"):
     logger.error("FFmpeg not found in system path!")
 else:
-    logger.debug("FFmpeg is available.")
-
-if not which("ffprobe"):
-    logger.error("FFprobe not found in system path!")
-else:
-    logger.debug("FFprobe is available.")
+    logger.info("FFmpeg is available.")
 
 @receiver(post_save, sender=Transcription)
 def auto_chunk_audio(sender, instance, created, **kwargs):
@@ -44,51 +32,38 @@ def auto_chunk_audio(sender, instance, created, **kwargs):
         try:
             # Check if the audio file exists
             audio_file_path = instance.audio_file.path
+            logger.debug(f"Checking if audio file exists at: {audio_file_path}")
             if not os.path.exists(audio_file_path):
                 raise FileNotFoundError(f"Audio file does not exist at {audio_file_path}")
-
-            logger.debug(f"Audio file found at {audio_file_path}")
-
-            # Check if the file is empty
-            if os.path.getsize(audio_file_path) == 0:
-                logger.error(f"Audio file {audio_file_path} is empty.")
-                instance.status = 'failed'
-                instance.save(update_fields=['status'])
-                return
+            logger.info(f"Audio file found at: {audio_file_path}")
 
             # Convert m4a to wav if needed, handle .mp3 as well
             if audio_file_path.endswith(".m4a"):
                 wav_file_path = audio_file_path.replace(".m4a", ".wav")
-                logger.debug(f"Converting {audio_file_path} to {wav_file_path} using ffmpeg...")
+                logger.info(f"Converting {audio_file_path} to {wav_file_path} using ffmpeg...")
                 subprocess.run(["ffmpeg", "-i", audio_file_path, wav_file_path], check=True)
                 audio_file_path = wav_file_path  # Update to the new wav file
-                logger.debug(f"Conversion complete. New file path: {audio_file_path}")
+                logger.info(f"Conversion complete. New file path: {audio_file_path}")
             elif audio_file_path.endswith(".mp3"):
                 logger.debug("MP3 file detected, no conversion needed.")
 
             # Load the audio file
-            try:
-                logger.debug(f"Loading audio file for transcription {instance.id} from {audio_file_path}")
-                audio = AudioSegment.from_file(audio_file_path)
-                logger.debug(f"Audio loaded successfully for transcription {instance.id}")
-            except Exception as e:
-                logger.error(f"Error loading audio file for transcription {instance.id}: {str(e)}")
-                instance.status = 'failed'
-                instance.save(update_fields=['status'])
-                return
+            logger.info(f"Loading audio file for transcription {instance.id} from {audio_file_path}")
+            audio = AudioSegment.from_file(audio_file_path)
+            logger.info(f"Audio loaded successfully for transcription {instance.id}, length: {len(audio)} ms")
 
             # Log the length of the audio file to help with debugging
             logger.debug(f"Audio length: {len(audio)} ms")
 
             chunk_length_ms = 2 * 60 * 1000  # Chunk size of 2 minutes (adjust as needed)
             chunks = [audio[i:i + chunk_length_ms] for i in range(0, len(audio), chunk_length_ms)]
-            logger.debug(f"Created {len(chunks)} chunks for transcription {instance.id}")
+            logger.info(f"Created {len(chunks)} chunks for transcription {instance.id}")
 
             # Ensure the chunk directory exists
             chunk_dir = "audio_chunks"
             if not os.path.exists(chunk_dir):
                 os.makedirs(chunk_dir)
-                logger.debug(f"Created directory for chunks: {chunk_dir}")
+                logger.info(f"Created directory for chunks: {chunk_dir}")
 
             # Create an AudioChunk object for each chunk
             for index, chunk in enumerate(chunks):
@@ -101,14 +76,13 @@ def auto_chunk_audio(sender, instance, created, **kwargs):
                     chunk_file=chunk_file_path,
                     chunk_index=index
                 )
-
-                logger.debug(f"Created chunk {index} in database for transcription {instance.id}")
+                logger.info(f"Created chunk {index} in database for transcription {instance.id}")
 
             # Update transcription status
             instance.is_chunked = True
             instance.status = 'completed'
             instance.save(update_fields=['is_chunked', 'status'])
-            logger.debug(f"Updated transcription {instance.id} status to 'completed'")
+            logger.info(f"Updated transcription {instance.id} status to 'completed'")
 
         except FileNotFoundError as e:
             instance.status = 'failed'
