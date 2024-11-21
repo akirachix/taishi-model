@@ -288,71 +288,60 @@ def save_as_pdf(brief, filename, image_path=None):
     pdf.set_auto_page_break(auto=True, margin=15)
     pdf.add_page()
 
+    # Add logo image if provided
     if image_path:
         pdf.image(image_path, x=(pdf.w - 40) / 2, y=10, w=40, h=40)
-    
+
     pdf.ln(50)
 
-    # Split the brief into sections
+    # Split the brief into header and content parts more efficiently
     sections = brief.split('RULING ON SENTENCE')
     
-    # Handle cases where 'RULING ON SENTENCE' is not found
-    if len(sections) == 1:
-        header = ''
-        ruling = brief
-    else:
-        header = sections[0].strip()
-        ruling = 'RULING ON SENTENCE' + sections[1].strip()
+    # If 'RULING ON SENTENCE' is found, split; otherwise, use whole content
+    header = sections[0].strip() if len(sections) > 1 else ''
+    ruling = sections[1].strip() if len(sections) > 1 else sections[0].strip()
 
-    # Add the header (everything before "RULING ON SENTENCE")
+    # Add header part to PDF
     pdf.set_font("Times", style='B', size=13)
-    for line in header.split('\n'):
-        if line.strip():
+    if header:
+        for line in header.split('\n'):
             pdf.cell(0, 10, line.strip(), align='C', ln=True)
-        else:
-            pdf.ln(5)
+        pdf.ln(10)
 
-    pdf.ln(10)
-
-    # Add "RULING ON SENTENCE" centered and bold
+    # Add "RULING ON SENTENCE" if it's present in the text
     if len(sections) > 1:
         pdf.cell(0, 10, 'RULING ON SENTENCE', align='C', ln=True)
         pdf.ln(10)
 
-    # Add the content (everything after "RULING ON SENTENCE")
+    # Add content after "RULING ON SENTENCE"
     pdf.set_font("Times", size=12)
     content = ruling.split('DATED, SIGNED AND DELIVERED')[0].strip()
     
-    # Handle bold text
+    # Function to add text with bold formatting
     def add_text_with_bold(pdf, text):
         parts = re.split(r'(\[b\].*?\[/b\])', text)
         for part in parts:
             if part.startswith('[b]') and part.endswith('[/b]'):
                 pdf.set_font("Times", style='B', size=12)
-                pdf.multi_cell(0, 10, part[3:-4], align='J')
+                pdf.multi_cell(0, 10, part[3:-4], align='J')  # Bold part
             else:
                 pdf.set_font("Times", size=12)
-                pdf.multi_cell(0, 10, part, align='J')
+                pdf.multi_cell(0, 10, part, align='J')  # Regular text
 
     add_text_with_bold(pdf, content)
 
     pdf.ln(10)
 
-    # Add the footer (everything after the content)
+    # Add footer text if available
     footer_parts = ruling.split('DATED, SIGNED AND DELIVERED')
     if len(footer_parts) > 1:
         pdf.set_font("Times", style='B', size=13)
         footer = 'DATED, SIGNED AND DELIVERED' + footer_parts[1]
         for line in footer.split('\n'):
-            if line.strip():
-                pdf.cell(0, 10, line.strip(), align='C', ln=True)
-            else:
-                pdf.ln(5)
+            pdf.cell(0, 10, line.strip(), align='C', ln=True)
 
+    # Output the PDF to the file path
     pdf.output(filename)
-
-
-
 
 
 
