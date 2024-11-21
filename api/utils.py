@@ -16,7 +16,7 @@ formatter = logging.Formatter('%(asctime)s - %(levelname)s - %(message)s')
 console_handler.setFormatter(formatter)
 logger.addHandler(console_handler)
 
-aai.settings.api_key = settings.AAI_KEY
+aai.settings.api_key =  os.getenv("AAI_KEY")
 
 import openai
 openai.api_key = os.getenv("OPENAI_API_KEY")
@@ -58,7 +58,7 @@ def transcribe_audio_with_retry(audio_file_path, retries=5, delay=2):
 from pyannote.audio import Pipeline
 
 # Initialize the diarization pipeline (use your Hugging Face access token if needed)
-HF_AUTH_TOKEN = os.getenv('HF_AUTH_TOKEN', settings.HF_AUTH_TOKEN)
+HF_AUTH_TOKEN = os.getenv('HF_AUTH_TOKEN')
 pipeline = Pipeline.from_pretrained("pyannote/speaker-diarization-3.1", use_auth_token=HF_AUTH_TOKEN)
 
 
