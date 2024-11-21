@@ -70,17 +70,22 @@ class TranscriptionViewSet(mixins.CreateModelMixin, mixins.ListModelMixin, mixin
             file_content_type = request.FILES['audio_file'].content_type
             logger.info(f"File content type: {file_content_type}")
 
-            # Run ffmpeg manually and log output
+            # Set output file path (modify as needed)
+            output_file_path = "/path/to/output/file.wav"  # Adjust this path
+
             try:
-                command = ["ffmpeg", "-v", "error", "-i", audio_file_path]
+                # Run ffmpeg command with both input and output files
+                command = ["ffmpeg", "-v", "error", "-i", audio_file_path, output_file_path]
                 result = subprocess.run(command, capture_output=True, text=True)
+                
+                # Check for FFmpeg errors
                 if result.returncode != 0:
                     logger.error(f"FFmpeg error: {result.stderr}")
                     return Response({
                         'message': 'Error processing audio file with FFmpeg.',
                         'error': result.stderr,
                     }, status=status.HTTP_500_INTERNAL_SERVER_ERROR)
-                
+
                 logger.info(f"FFmpeg output: {result.stdout}")
                 
                 # Attempt to load the audio file using AudioSegment
