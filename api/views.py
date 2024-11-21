@@ -143,8 +143,8 @@ class CaseMatchingListView(generics.ListCreateAPIView):
             transcription_text = transcription.transcription_text
 
             extracted_details = extract_case_details(transcription_text)
-            print(f'extracted_details: {extracted_details}')
-            print(f'type of extracted_details: {type(extracted_details)}')  ## ['Ruth Wanjiku Kamande', 'murder', 'family']
+            logger.info(f'extracted_details: {extracted_details}')
+            logger.info(f'type of extracted_details: {type(extracted_details)}')  ## ['Ruth Wanjiku Kamande', 'murder', 'family']
 
             search_term = ' '.join(extracted_details)
 
