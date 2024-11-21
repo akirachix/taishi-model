@@ -11,7 +11,6 @@ import subprocess
 logger = logging.getLogger(__name__)
 logger.setLevel(logging.DEBUG)
 
-# You can configure the logger to output to a file or console as needed
 console_handler = logging.StreamHandler()  # For logging to console
 console_handler.setLevel(logging.DEBUG)
 formatter = logging.Formatter('%(asctime)s - %(levelname)s - %(message)s')
@@ -54,9 +53,15 @@ def auto_chunk_audio(sender, instance, created, **kwargs):
             chunks = [audio[i:i + chunk_length_ms] for i in range(0, len(audio), chunk_length_ms)]
             logger.debug(f"Created {len(chunks)} chunks for transcription {instance.id}")
 
+            # Ensure the chunk directory exists
+            chunk_dir = "audio_chunks"
+            if not os.path.exists(chunk_dir):
+                os.makedirs(chunk_dir)
+                logger.debug(f"Created directory for chunks: {chunk_dir}")
+
             # Create an AudioChunk object for each chunk
             for index, chunk in enumerate(chunks):
-                chunk_file_path = f"audio_chunks/{instance.id}_chunk_{index}.wav"
+                chunk_file_path = os.path.join(chunk_dir, f"{instance.id}_chunk_{index}.wav")
                 chunk.export(chunk_file_path, format="wav")
                 logger.debug(f"Exported chunk {index} to {chunk_file_path}")
 
@@ -78,6 +83,11 @@ def auto_chunk_audio(sender, instance, created, **kwargs):
             instance.status = 'failed'
             instance.save(update_fields=['status'])
             logger.error(f"FileNotFoundError while processing transcription {instance.id}: {str(e)}")
+
+        except subprocess.CalledProcessError as e:
+            instance.status = 'failed'
+            instance.save(update_fields=['status'])
+            logger.error(f"FFmpeg conversion failed for transcription {instance.id}: {str(e)}")
 
         except Exception as e:
             instance.status = 'failed'
