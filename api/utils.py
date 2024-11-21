@@ -19,7 +19,7 @@ logger.addHandler(console_handler)
 aai.settings.api_key = settings.AAI_KEY
 
 import openai
-openai.api_key = settings.OPENAI_API_KEY
+openai.api_key = os.getenv("OPENAI_API_KEY")
 
 def transcribe_audio_with_retry(audio_file_path, retries=5, delay=2):
     """Transcribes audio using OpenAI Whisper API with retries and exponential backoff."""
