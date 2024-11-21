@@ -36,18 +36,29 @@ def auto_chunk_audio(sender, instance, created, **kwargs):
 
             logger.debug(f"Audio file found at {audio_file_path}")
 
-            # Convert m4a to wav if needed
+            # Convert m4a to wav if needed, handle .mp3 as well
             if audio_file_path.endswith(".m4a"):
                 wav_file_path = audio_file_path.replace(".m4a", ".wav")
                 logger.debug(f"Converting {audio_file_path} to {wav_file_path} using ffmpeg...")
                 subprocess.run(["ffmpeg", "-i", audio_file_path, wav_file_path], check=True)
                 audio_file_path = wav_file_path  # Update to the new wav file
                 logger.debug(f"Conversion complete. New file path: {audio_file_path}")
+            elif audio_file_path.endswith(".mp3"):
+                logger.debug("MP3 file detected, no conversion needed.")
 
             # Load the audio file
-            logger.debug(f"Loading audio file for transcription {instance.id} from {audio_file_path}")
-            audio = AudioSegment.from_file(audio_file_path)
-            logger.debug(f"Audio loaded successfully for transcription {instance.id}")
+            try:
+                logger.debug(f"Loading audio file for transcription {instance.id} from {audio_file_path}")
+                audio = AudioSegment.from_file(audio_file_path)
+                logger.debug(f"Audio loaded successfully for transcription {instance.id}")
+            except Exception as e:
+                logger.error(f"Error loading audio file for transcription {instance.id}: {str(e)}")
+                instance.status = 'failed'
+                instance.save(update_fields=['status'])
+                return
+
+            # Log the length of the audio file to help with debugging
+            logger.debug(f"Audio length: {len(audio)} ms")
 
             chunk_length_ms = 2 * 60 * 1000  # Chunk size of 2 minutes (adjust as needed)
             chunks = [audio[i:i + chunk_length_ms] for i in range(0, len(audio), chunk_length_ms)]
