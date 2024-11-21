@@ -284,9 +284,9 @@ def format_case_brief(case_info):
 
 
 def save_as_pdf(brief, filename, image_path=None):
-    logger.info(f"^^^^^^^^^^^^^^{brief}*****:::::::@@@@@@:{filename}:$$$$$$$$:::::{image_path}@@@@@@@@@@@@")
     start_time = time.time()  # Track start time
-    
+    logger.info("Starting the PDF creation process.")
+
     pdf = FPDF()
     pdf.set_auto_page_break(auto=True, margin=15)
     pdf.add_page()
@@ -295,24 +295,21 @@ def save_as_pdf(brief, filename, image_path=None):
     if image_path:
         pdf.image(image_path, x=(pdf.w - 40) / 2, y=10, w=40, h=40)
     
-    logging.debug("Added logo image (if any).")
+    logger.debug("Added logo image (if any).")
     pdf.ln(50)
 
     # Split the brief into header and content parts more efficiently
-    logging.debug("Starting to split the brief into sections.")
     section_split_start = time.time()
     sections = brief.split('RULING ON SENTENCE')
 
-    # Log the time it took to split the sections
     section_split_end = time.time()
-    logging.debug(f"Section split took {section_split_end - section_split_start:.4f} seconds.")
+    logger.debug(f"Section split took {section_split_end - section_split_start:.4f} seconds.")
     
     # If 'RULING ON SENTENCE' is found, split; otherwise, use the whole content
     header = sections[0].strip() if len(sections) > 1 else ''
     ruling = sections[1].strip() if len(sections) > 1 else sections[0].strip()
 
     # Add header part to PDF
-    logging.debug("Starting to add header to PDF.")
     header_start_time = time.time()
     pdf.set_font("Times", style='B', size=13)
     if header:
@@ -320,22 +317,22 @@ def save_as_pdf(brief, filename, image_path=None):
             pdf.cell(0, 10, line.strip(), align='C', ln=True)
         pdf.ln(10)
     header_end_time = time.time()
-    logging.debug(f"Adding header took {header_end_time - header_start_time:.4f} seconds.")
+    logger.debug(f"Adding header took {header_end_time - header_start_time:.4f} seconds.")
 
     # Add "RULING ON SENTENCE" if it's present in the text
     if len(sections) > 1:
-        logging.debug("Adding 'RULING ON SENTENCE' section.")
+        logger.debug("Adding 'RULING ON SENTENCE' section.")
         pdf.cell(0, 10, 'RULING ON SENTENCE', align='C', ln=True)
         pdf.ln(10)
 
     # Add content after "RULING ON SENTENCE"
-    logging.debug("Starting to add content to PDF.")
     content_start_time = time.time()
     pdf.set_font("Times", size=12)
     content = ruling.split('DATED, SIGNED AND DELIVERED')[0].strip()
-    
+
     # Function to add text with bold formatting
     def add_text_with_bold(pdf, text):
+        logger.debug("Starting to add text with bold formatting.")
         parts = re.split(r'(\[b\].*?\[/b\])', text)
         for part in parts:
             if part.startswith('[b]') and part.endswith('[/b]'):
@@ -347,12 +344,12 @@ def save_as_pdf(brief, filename, image_path=None):
 
     add_text_with_bold(pdf, content)
     content_end_time = time.time()
-    logging.debug(f"Adding content took {content_end_time - content_start_time:.4f} seconds.")
+    logger.debug(f"Adding content took {content_end_time - content_start_time:.4f} seconds.")
 
     pdf.ln(10)
 
     # Add footer text if available
-    logging.debug("Checking for footer and adding it if present.")
+    footer_start_time = time.time()
     footer_parts = ruling.split('DATED, SIGNED AND DELIVERED')
     if len(footer_parts) > 1:
         pdf.set_font("Times", style='B', size=13)
@@ -360,16 +357,18 @@ def save_as_pdf(brief, filename, image_path=None):
         for line in footer.split('\n'):
             pdf.cell(0, 10, line.strip(), align='C', ln=True)
 
+    footer_end_time = time.time()
+    logger.debug(f"Adding footer took {footer_end_time - footer_start_time:.4f} seconds.")
+
     # Output the PDF to the file path
     pdf_output_start_time = time.time()
     pdf.output(filename)
     pdf_output_end_time = time.time()
-    logging.debug(f"PDF output took {pdf_output_end_time - pdf_output_start_time:.4f} seconds.")
+    logger.debug(f"PDF output took {pdf_output_end_time - pdf_output_start_time:.4f} seconds.")
 
     # Total time taken
     total_time = time.time() - start_time
-    logging.debug(f"Total time for generating PDF: {total_time:.4f} seconds.")
-
+    logger.debug(f"Total time for generating PDF: {total_time:.4f} seconds.")
 
 
 def upload_file_to_s3(file, file_name):
