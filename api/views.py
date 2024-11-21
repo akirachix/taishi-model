@@ -47,8 +47,9 @@ class TranscriptionViewSet(mixins.CreateModelMixin, mixins.ListModelMixin, mixin
         if serializer.is_valid():
             transcription = serializer.save()
 
+            # Access the uploaded file's path
             audio_file_path = transcription.audio_file.path
-            logger.info(f"Audio file saved at: {audio_file_path}")
+            logger.info(f"Attempting to load audio file from: {audio_file_path}")
             
             # Check if the file exists
             if not os.path.exists(audio_file_path):
@@ -57,11 +58,11 @@ class TranscriptionViewSet(mixins.CreateModelMixin, mixins.ListModelMixin, mixin
                     'message': 'Audio file not found.',
                 }, status=status.HTTP_404_NOT_FOUND)
 
-            # Check file size
+            # Log file size for further debugging
             file_size = os.path.getsize(audio_file_path)
             logger.info(f"Audio file size: {file_size} bytes")
 
-            # Try loading the file with pydub
+            # Attempt to load the audio file using AudioSegment
             try:
                 audio = AudioSegment.from_file(audio_file_path)
                 logger.info(f"Audio file loaded successfully: {audio_file_path}")
@@ -72,6 +73,7 @@ class TranscriptionViewSet(mixins.CreateModelMixin, mixins.ListModelMixin, mixin
                     'error': str(e),
                 }, status=status.HTTP_500_INTERNAL_SERVER_ERROR)
 
+            # Return the response after processing
             return Response({
                 'id': transcription.id,
                 'message': 'Transcription processed successfully.',
