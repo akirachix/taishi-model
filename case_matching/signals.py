@@ -13,6 +13,14 @@ from selenium.webdriver.chrome.options import Options
 from webdriver_manager.chrome import ChromeDriverManager
 from selenium.webdriver.chrome.service import Service
 
+import os
+from selenium import webdriver
+
+# Set the path to the Chrome binary
+os.environ['CHROME_BIN'] = '/usr/bin/google-chrome-stable'
+
+# Now create a new Chrome WebDriver instance
+driver = webdriver.Chrome()
 
 # Set up logging
 logger = logging.getLogger(__name__)
