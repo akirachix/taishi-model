@@ -15,6 +15,10 @@ console_handler.setLevel(logging.INFO)
 formatter = logging.Formatter('%(asctime)s - %(levelname)s - %(message)s')
 console_handler.setFormatter(formatter)
 logger.addHandler(console_handler)
+from dotenv import load_dotenv
+
+# Load environment variables from the .env file located at the root of the project
+load_dotenv()
 
 aai.settings.api_key =  os.getenv("AAI_KEY")
 
