@@ -24,11 +24,16 @@ AudioSegment.ffmpeg = "/usr/local/bin/ffmpeg"
 AudioSegment.ffprobe = "/usr/local/bin/ffprobe"
 os.environ["FFMPEG_BINARY"] = "/usr/local/bin/ffmpeg"
 
-# Check if ffmpeg is available
+# Check if ffmpeg and ffprobe are available
 if not which("ffmpeg"):
     logger.error("FFmpeg not found in system path!")
 else:
     logger.debug("FFmpeg is available.")
+
+if not which("ffprobe"):
+    logger.error("FFprobe not found in system path!")
+else:
+    logger.debug("FFprobe is available.")
 
 @receiver(post_save, sender=Transcription)
 def auto_chunk_audio(sender, instance, created, **kwargs):
@@ -43,6 +48,13 @@ def auto_chunk_audio(sender, instance, created, **kwargs):
                 raise FileNotFoundError(f"Audio file does not exist at {audio_file_path}")
 
             logger.debug(f"Audio file found at {audio_file_path}")
+
+            # Check if the file is empty
+            if os.path.getsize(audio_file_path) == 0:
+                logger.error(f"Audio file {audio_file_path} is empty.")
+                instance.status = 'failed'
+                instance.save(update_fields=['status'])
+                return
 
             # Convert m4a to wav if needed, handle .mp3 as well
             if audio_file_path.endswith(".m4a"):
